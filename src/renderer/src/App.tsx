@@ -1,34 +1,18 @@
-import Versions from './components/Versions'
-import electronLogo from './assets/electron.svg'
+import { motion } from 'motion/react'
 
 function App(): React.JSX.Element {
-  const ipcHandle = (): void => window.electron.ipcRenderer.send('ping')
-
   return (
-    <>
-      <img alt="logo" className="logo" src={electronLogo} />
-      <div className="creator">Powered by electron-vite</div>
-      <div className="text">
-        Build an Electron app with <span className="react">React</span>
-        &nbsp;and <span className="ts">TypeScript</span>
-      </div>
-      <p className="tip">
-        Please try pressing <code>F12</code> to open the devTool
-      </p>
-      <div className="actions">
-        <div className="action">
-          <a href="https://electron-vite.org/" target="_blank" rel="noreferrer">
-            Documentation
-          </a>
-        </div>
-        <div className="action">
-          <a target="_blank" rel="noreferrer" onClick={ipcHandle}>
-            Send IPC
-          </a>
-        </div>
-      </div>
-      <Versions></Versions>
-    </>
+    <main className="flex h-full items-center justify-center">
+      <motion.div
+        initial={{ opacity: 0, y: 12, filter: 'blur(8px)' }}
+        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+        className="text-center"
+      >
+        <h1 className="text-5xl font-semibold tracking-tight">Lectern</h1>
+        <p className="mt-3 text-sm text-neutral-400">The empty box works.</p>
+      </motion.div>
+    </main>
   )
 }
 
