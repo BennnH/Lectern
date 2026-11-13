@@ -11,5 +11,15 @@ body,
 }
 
 body {
-  @apply bg-neutral-950 font-sans text-neutral-100 antialiased;
+  @apply bg-neutral-950 font-sans text-neutral-100 antialiased select-none;
+}
+
+/* Lets you drag the window by this area (macOS hidden title bar) */
+.app-drag {
+  -webkit-app-region: drag;
+}
+
+/* Buttons inside a drag area need this to stay clickable */
+.app-no-drag {
+  -webkit-app-region: no-drag;
 }

@@ -1,12 +1,13 @@
-import { contextBridge } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
-// Custom APIs for renderer
-const api = {}
+// The functions the UI is allowed to call in the main process
+const api = {
+  listBooks: () => ipcRenderer.invoke('library:list'),
+  readBook: (id: string) => ipcRenderer.invoke('library:read', id),
+  openLibraryFolder: () => ipcRenderer.invoke('library:open-folder')
+}
 
-// Use `contextBridge` APIs to expose Electron APIs to
-// renderer only if context isolation is enabled, otherwise
-// just add to the DOM global.
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)
