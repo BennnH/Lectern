@@ -82,6 +82,10 @@ function registerWindowHandlers(): void {
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('info.benhardy.lectern')
 
+  // In development the Dock shows Electron's own icon; show Lectern's instead.
+  // (The built app gets its icon from build/icon.icns, so it doesn't need this.)
+  if (is.dev && process.platform === 'darwin') app.dock?.setIcon(icon)
+
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
