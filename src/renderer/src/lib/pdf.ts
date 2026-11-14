@@ -161,6 +161,27 @@ function findContent(canvas: HTMLCanvasElement): CropBox | null {
   }
 }
 
+// Draws a small, quick version of a page (used for measuring, not for reading)
+async function renderSmall(
+  doc: PdfDoc,
+  pageNumber: number,
+  width: number
+): Promise<HTMLCanvasElement> {
+  const page = await doc.getPage(pageNumber)
+  const natural = page.getViewport({ scale: 1 })
+  const viewport = page.getViewport({ scale: width / natural.width })
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.ceil(viewport.width)
+  canvas.height = Math.ceil(viewport.height)
+  await page.render({ canvas, viewport }).promise
+  return canvas
+}
+
+// True if a page has anything printed on it (used to spot picture-only pages)
+export async function pageHasInk(doc: PdfDoc, pageNumber: number): Promise<boolean> {
+  return findContent(await renderSmall(doc, pageNumber, 120)) !== null
+}
+
 // Works out one set of margins for the whole book by sampling a few pages, so the
 // text stays the same size from page to page. Returns null if there's nothing to trim.
 export async function detectCrop(doc: PdfDoc): Promise<CropBox | null> {
@@ -175,15 +196,7 @@ export async function detectCrop(doc: PdfDoc): Promise<CropBox | null> {
 
   let union: CropBox | null = null
   for (const pageNumber of samples) {
-    const page = await doc.getPage(pageNumber)
-    const natural = page.getViewport({ scale: 1 })
-    const viewport = page.getViewport({ scale: 200 / natural.width })
-    const canvas = document.createElement('canvas')
-    canvas.width = Math.ceil(viewport.width)
-    canvas.height = Math.ceil(viewport.height)
-    await page.render({ canvas, viewport }).promise
-
-    const content = findContent(canvas)
+    const content = findContent(await renderSmall(doc, pageNumber, 200))
     if (!content) continue
     const area = (content.right - content.left) * (content.bottom - content.top)
     if (area > 0.95) continue // full-page pictures shouldn't stop the text pages being trimmed

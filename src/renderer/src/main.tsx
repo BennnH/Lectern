@@ -1,4 +1,5 @@
 import '@fontsource-variable/inter'
+import '@fontsource-variable/literata'
 import './assets/main.css'
 
 import { StrictMode } from 'react'
