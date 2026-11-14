@@ -6,6 +6,8 @@ import { blockForPage, getReflowBook, type ReflowBook } from '../lib/reflow'
 import { getProgress, saveProgress, saveSession } from '../lib/store'
 import { MAX_TURN_MS, SessionTracker, fractionAt, isWorthKeeping } from '../lib/stats'
 import { useCommandKeys, type CommandActions, type CommandId } from '../lib/commands'
+import { useVoiceCommands } from '../lib/voice/useVoiceCommands'
+import { loadVoiceSettings, saveVoiceSettings, type VoiceSettings } from '../lib/voice/settings'
 import {
   DEFAULT_SETTINGS,
   FONT_SIZES,
@@ -24,6 +26,8 @@ import ReflowView, { type ReflowLocation } from './ReflowView'
 import ReaderToolbar from './ReaderToolbar'
 import SessionPanel from './SessionPanel'
 import ControlsHelp from './ControlsHelp'
+import VoiceIndicator from './VoiceIndicator'
+import VoicePanel from './VoicePanel'
 
 type Props = {
   book: Book
@@ -52,6 +56,10 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
   const [tracker, setTracker] = useState<SessionTracker | null>(null)
   const [statsOpen, setStatsOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
+  // Voice commands always start off, and stop when you leave the book
+  const [voiceOn, setVoiceOn] = useState(false)
+  const [voicePanelOpen, setVoicePanelOpen] = useState(false)
+  const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>(loadVoiceSettings)
   const [reflowBook, setReflowBook] = useState<ReflowBook | null>(null)
   const [preparing, setPreparing] = useState(0)
   const [location, setLocation] = useState<ReflowLocation | null>(null)
@@ -131,6 +139,7 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
 
   // Remember settings and progress
   useEffect(() => saveSettings(settings), [settings])
+  useEffect(() => saveVoiceSettings(voiceSettings), [voiceSettings])
   useEffect(() => {
     if (!doc) return
     saveProgress(book.fingerprint, {
@@ -233,6 +242,13 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
     window.api.toggleFullscreen()
   }, [])
 
+  const toggleVoice = useCallback(() => {
+    const on = !voiceOn
+    setVoiceOn(on)
+    if (!on) setVoicePanelOpen(false)
+    showFlash(on ? 'Voice commands on' : 'Voice commands off')
+  }, [voiceOn, showFlash])
+
   // What each command does in the reader (the keys and voice words live in lib/commands.ts)
   const actions = useMemo<CommandActions>(
     () => ({
@@ -247,10 +263,11 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
       'view.fit': toggleFit,
       'stats.toggle': () => setStatsOpen((open) => !open),
       'book.close': close,
+      'voice.toggle': toggleVoice,
       'window.fullscreen': toggleFullscreen,
       'help.toggle': () => setHelpOpen((open) => !open)
     }),
-    [resize, toggleMode, cycleTheme, toggleCrop, toggleFit, close, toggleFullscreen]
+    [resize, toggleMode, cycleTheme, toggleCrop, toggleFit, close, toggleVoice, toggleFullscreen]
   )
 
   // While the controls list is open, ? and Esc just close it (nothing changes behind it)
@@ -263,6 +280,13 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
   )
 
   useCommandKeys(helpOpen ? helpActions : actions)
+
+  // Voice runs the same actions as the keys (see lib/voice for how it listens)
+  const voice = useVoiceCommands({
+    enabled: voiceOn,
+    noiseFilter: voiceSettings.noiseFilter,
+    actions: helpOpen ? helpActions : actions
+  })
 
   // Toolbar buttons run the same commands as the keys
   const runCommand = useCallback((id: CommandId) => actions[id]?.(), [actions])
@@ -384,6 +408,27 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
         {helpOpen && <ControlsHelp mode={mode} onClose={() => setHelpOpen(false)} />}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {voiceOn && (
+          <VoiceIndicator
+            voice={voice}
+            controlsVisible={controlsVisible}
+            onClick={() => setVoicePanelOpen((open) => !open)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {voiceOn && voicePanelOpen && (
+          <VoicePanel
+            voice={voice}
+            settings={voiceSettings}
+            onChangeSettings={setVoiceSettings}
+            onClose={() => setVoicePanelOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
       <motion.button
         type="button"
         onClick={close}
@@ -404,6 +449,7 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
         isFullscreen={isFullscreen}
         statsOpen={statsOpen}
         helpOpen={helpOpen}
+        voiceOn={voiceOn}
         onCommand={runCommand}
       />
     </motion.div>

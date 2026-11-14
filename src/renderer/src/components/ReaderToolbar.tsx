@@ -6,6 +6,8 @@ import {
   CircleQuestionMark,
   Crop,
   Maximize,
+  Mic,
+  MicOff,
   Minimize,
   Minus,
   Moon,
@@ -27,6 +29,7 @@ type Props = {
   isFullscreen: boolean
   statsOpen: boolean
   helpOpen: boolean
+  voiceOn: boolean
   onCommand: (id: CommandId) => void
 }
 
@@ -151,6 +154,15 @@ export default function ReaderToolbar(props: Props): React.JSX.Element {
         >
           <Activity size={16} />
         </ToolButton>
+
+        <ToolButton
+          label={hint(props.voiceOn ? 'Turn voice commands off' : 'Voice commands', 'voice.toggle')}
+          active={props.voiceOn}
+          onClick={() => onCommand('voice.toggle')}
+        >
+          {props.voiceOn ? <Mic size={16} /> : <MicOff size={16} />}
+        </ToolButton>
+
         <ToolButton
           label={hint('Controls', 'help.toggle')}
           active={props.helpOpen}

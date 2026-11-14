@@ -4,3 +4,5 @@ out
 .DS_Store
 .eslintcache
 *.log*
+# Speech model for voice commands (download with: npm run voice-model)
+resources/voice/

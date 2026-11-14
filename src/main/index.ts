@@ -5,6 +5,12 @@ import icon from '../../resources/icon.png?asset'
 import { registerLibraryHandlers } from './library'
 import { registerStoreHandlers } from './store'
 
+import { registerVoiceHandlers, registerVoiceScheme } from './voice'
+import { lockDownSession } from './security'
+
+// The lectern:// address for the voice model has to be registered before the app is ready
+registerVoiceScheme()
+
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
     width: 1200,
@@ -80,8 +86,10 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
+  lockDownSession(is.dev ? process.env['ELECTRON_RENDERER_URL'] : undefined)
   registerLibraryHandlers()
   registerStoreHandlers()
+  registerVoiceHandlers()
   registerWindowHandlers()
   createWindow()
 

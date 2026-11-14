@@ -12,6 +12,9 @@ const api = {
     ipcRenderer.invoke('data:save-progress', bookId, progress),
   saveSession: (session: ReadingSession) => ipcRenderer.invoke('data:save-session', session),
 
+  voiceModel: () => ipcRenderer.invoke('voice:model'),
+  microphoneAccess: () => ipcRenderer.invoke('voice:microphone-access'),
+
   keepScreenOn: (on: boolean) => ipcRenderer.invoke('window:keep-screen-on', on),
   toggleFullscreen: () => ipcRenderer.invoke('window:toggle-fullscreen'),
   isFullscreen: () => ipcRenderer.invoke('window:is-fullscreen'),

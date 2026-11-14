@@ -16,6 +16,8 @@ declare global {
     loadData(): Promise<StoredData>
     saveProgress(bookId: string, progress: BookProgress): Promise<void>
     saveSession(session: ReadingSession): Promise<void>
+    voiceModel(): Promise<{ url: string; available: boolean }>
+    microphoneAccess(): Promise<'granted' | 'denied'>
     keepScreenOn(on: boolean): Promise<void>
     toggleFullscreen(): Promise<void>
     isFullscreen(): Promise<boolean>

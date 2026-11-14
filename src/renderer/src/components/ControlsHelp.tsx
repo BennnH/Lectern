@@ -33,6 +33,7 @@ function VoiceWords({ command }: { command: Command }): React.JSX.Element {
           “{word}”
         </span>
       ))}
+      {command.strict && <span className="text-xs text-neutral-500">say twice</span>}
     </div>
   )
 }
@@ -108,8 +109,9 @@ export default function ControlsHelp({ mode, onClose }: Props): React.JSX.Elemen
         </div>
 
         <p className="mt-5 text-xs leading-relaxed text-neutral-500">
-          Say voice words on their own. Voice mode is coming soon. You can also click the right or
-          left half of the page to turn it. Press {shortcut('help.toggle')} or Esc to close.
+          Turn voice on with {shortcut('voice.toggle')} or the mic button, then say the words on
+          their own. You can also click the right or left half of the page to turn it. Press{' '}
+          {shortcut('help.toggle')} or Esc to close.
         </p>
       </motion.div>
     </motion.div>

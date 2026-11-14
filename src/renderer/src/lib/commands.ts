@@ -2,10 +2,15 @@ import { useEffect } from 'react'
 import type { ReadingMode } from './settings'
 
 // Every action you can trigger in the reader, in one place.
-// The keyboard, the toolbar and (soon) voice all run commands from this list,
+// The keyboard, the toolbar and voice all run commands from this list,
 // and the controls overlay (?) is built from it, so it can never go out of date.
 // To add a command: add its id below, add an entry to COMMANDS, then give it an
 // action in Reader.tsx.
+//
+// Choosing voice words: in testing, longer or more distinctive phrases ("next", "go back",
+// "my stats", "library") were recognised far more reliably than short similar-sounding
+// words ("turn", "back", "stats", "done"), which were often mistaken for each other.
+// Every word listed here is one more thing the recogniser can mishear, so keep them distinct.
 
 export type CommandId =
   | 'page.next'
@@ -19,6 +24,7 @@ export type CommandId =
   | 'view.fit'
   | 'stats.toggle'
   | 'book.close'
+  | 'voice.toggle'
   | 'window.fullscreen'
   | 'help.toggle'
 
@@ -32,6 +38,8 @@ export type Command = {
   keys: string[]
   // Words to say in voice mode, each said on its own. The first is the main one.
   voice: string[]
+  // Voice only runs it when said twice in a row (for commands that are a pain to undo)
+  strict?: boolean
   // Only works in this reading mode
   only?: ReadingMode
 }
@@ -42,14 +50,14 @@ export const COMMANDS: Command[] = [
     label: 'Next page',
     group: 'Pages',
     keys: ['ArrowRight', ' ', 'ArrowDown', 'PageDown'],
-    voice: ['turn', 'next']
+    voice: ['next', 'turn']
   },
   {
     id: 'page.prev',
     label: 'Previous page',
     group: 'Pages',
     keys: ['ArrowLeft', 'ArrowUp', 'PageUp'],
-    voice: ['back', 'previous', 'go back']
+    voice: ['go back', 'previous']
   },
   {
     id: 'size.bigger',
@@ -107,14 +115,22 @@ export const COMMANDS: Command[] = [
     label: 'Session stats',
     group: 'Session',
     keys: ['i'],
-    voice: ['stats', 'statistics']
+    voice: ['my stats', 'statistics']
   },
   {
     id: 'book.close',
     label: 'Back to library',
     group: 'Session',
     keys: ['Escape'],
-    voice: ['library', 'done']
+    voice: ['library'],
+    strict: true
+  },
+  {
+    id: 'voice.toggle',
+    label: 'Voice commands on / off',
+    group: 'Session',
+    keys: ['v'],
+    voice: []
   },
   {
     id: 'window.fullscreen',
@@ -171,6 +187,18 @@ export function keyLabels(command: Command): string[] {
 // The main key for a command, for hints like "Theme (T)"
 export function shortcut(id: CommandId): string {
   return keyLabel(getCommand(id).keys[0])
+}
+
+// Every voice phrase, so the recogniser only listens for these
+export const VOICE_PHRASES: string[] = COMMANDS.flatMap((command) => command.voice)
+
+const BY_PHRASE = new Map(
+  COMMANDS.flatMap((command) => command.voice.map((phrase) => [phrase, command.id]))
+)
+
+// Which command a spoken phrase means (if any). Only exact phrases count.
+export function commandForPhrase(phrase: string): CommandId | null {
+  return BY_PHRASE.get(phrase) ?? null
 }
 
 // Which command a key press means (if any)
