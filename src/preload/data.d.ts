@@ -30,3 +30,9 @@ interface StoredData {
   progress: Record<string, BookProgress> // keyed by book fingerprint
   sessions: ReadingSession[]
 }
+
+// Ways to export the data (Data page)
+type DataExportFormat = 'json' | 'csv'
+
+// What "clear" removes: just the reading stats, or everything including your place in books
+type DataClearScope = 'stats' | 'all'

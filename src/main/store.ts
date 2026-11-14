@@ -1,6 +1,7 @@
-import { app, ipcMain } from 'electron'
+import { BrowserWindow, app, ipcMain, shell } from 'electron'
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'fs'
 import { join } from 'path'
+import { exportData } from './export'
 
 // Everything Lectern remembers about your reading (progress and sessions), saved as one
 // JSON file: ~/Library/Application Support/Lectern/lectern-data.json on a Mac.
@@ -53,6 +54,31 @@ export function registerStoreHandlers(): void {
     scheduleWrite()
   })
 
+  // --- Data page ---
+
+  ipcMain.handle('data:location', () => dataFile)
+
+  ipcMain.handle('data:show-file', () => {
+    if (existsSync(dataFile)) shell.showItemInFolder(dataFile)
+    else {
+      mkdirSync(dataDir, { recursive: true })
+      shell.openPath(dataDir)
+    }
+  })
+
+  ipcMain.handle('data:export', (event, format: DataExportFormat) => {
+    if (format !== 'json' && format !== 'csv') throw new Error(`Unknown export format: ${format}`)
+    return exportData(BrowserWindow.fromWebContents(event.sender), data, format)
+  })
+
+  // Deletes reading sessions (and, for 'all', your place in every book). Saved straight away.
+  ipcMain.handle('data:clear', (_event, scope: DataClearScope) => {
+    if (scope === 'stats') data = { ...data, sessions: [] }
+    else if (scope === 'all') data = { version: data.version, progress: {}, sessions: [] }
+    else throw new Error(`Unknown clear scope: ${scope}`)
+    writeNow()
+    return data
+  })
   // Make sure the last few changes are on disk before the app closes. It's done twice,
   // to catch anything the reader saves while its window is closing.
   const flush = (): void => {

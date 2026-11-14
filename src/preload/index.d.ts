@@ -16,6 +16,10 @@ declare global {
     loadData(): Promise<StoredData>
     saveProgress(bookId: string, progress: BookProgress): Promise<void>
     saveSession(session: ReadingSession): Promise<void>
+    dataLocation(): Promise<string> // where the data file is saved
+    showDataFile(): Promise<void> // shows it in Finder
+    exportData(format: DataExportFormat): Promise<string | null> // saved path, or null if cancelled
+    clearData(scope: DataClearScope): Promise<StoredData> // the data that's left
     voiceModel(): Promise<{ url: string; available: boolean }>
     microphoneAccess(): Promise<'granted' | 'denied'>
     keepScreenOn(on: boolean): Promise<void>

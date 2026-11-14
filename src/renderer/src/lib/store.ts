@@ -29,6 +29,20 @@ export function saveSession(session: ReadingSession): void {
   window.api.saveSession(copy)
 }
 
+// Totals for the Data page
+export function dataSummary(): { sessions: number; books: number; activeMs: number } {
+  return {
+    sessions: data.sessions.length,
+    books: Object.keys(data.progress).length,
+    activeMs: data.sessions.reduce((total, s) => total + s.activeMs, 0)
+  }
+}
+
+// Deletes reading stats (or everything) for good, then carries on with what's left
+export async function clearData(scope: DataClearScope): Promise<void> {
+  data = await window.api.clearData(scope)
+}
+
 // How far through a book you are, as a whole-number percentage
 export function percentRead(progress: BookProgress | null): number {
   if (!progress) return 0

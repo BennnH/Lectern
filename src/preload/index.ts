@@ -12,6 +12,11 @@ const api = {
     ipcRenderer.invoke('data:save-progress', bookId, progress),
   saveSession: (session: ReadingSession) => ipcRenderer.invoke('data:save-session', session),
 
+  dataLocation: () => ipcRenderer.invoke('data:location'),
+  showDataFile: () => ipcRenderer.invoke('data:show-file'),
+  exportData: (format: DataExportFormat) => ipcRenderer.invoke('data:export', format),
+  clearData: (scope: DataClearScope) => ipcRenderer.invoke('data:clear', scope),
+
   voiceModel: () => ipcRenderer.invoke('voice:model'),
   microphoneAccess: () => ipcRenderer.invoke('voice:microphone-access'),
 
