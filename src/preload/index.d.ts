@@ -12,6 +12,9 @@ declare global {
     listBooks(): Promise<Book[]>
     readBook(id: string): Promise<Uint8Array>
     openLibraryFolder(): Promise<string>
+    toggleFullscreen(): Promise<void>
+    isFullscreen(): Promise<boolean>
+    onFullscreenChange(callback: (isFullscreen: boolean) => void): () => void
   }
 
   interface Window {

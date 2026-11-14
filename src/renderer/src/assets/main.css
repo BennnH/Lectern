@@ -23,3 +23,11 @@ body {
 .app-no-drag {
   -webkit-app-region: no-drag;
 }
+
+/* Scrollable but with no visible scrollbar */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

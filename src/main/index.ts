@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow } from 'electron'
+import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -26,6 +26,14 @@ function createWindow(): void {
     mainWindow.show()
   })
 
+  // Tell the UI when full screen changes (including via the green button)
+  mainWindow.on('enter-full-screen', () => {
+    mainWindow.webContents.send('window:fullscreen-changed', true)
+  })
+  mainWindow.on('leave-full-screen', () => {
+    mainWindow.webContents.send('window:fullscreen-changed', false)
+  })
+
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
@@ -38,6 +46,16 @@ function createWindow(): void {
   }
 }
 
+function registerWindowHandlers(): void {
+  ipcMain.handle('window:toggle-fullscreen', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (win) win.setFullScreen(!win.isFullScreen())
+  })
+  ipcMain.handle('window:is-fullscreen', (event) => {
+    return BrowserWindow.fromWebContents(event.sender)?.isFullScreen() ?? false
+  })
+}
+
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('info.benhardy.lectern')
 
@@ -46,6 +64,7 @@ app.whenReady().then(() => {
   })
 
   registerLibraryHandlers()
+  registerWindowHandlers()
   createWindow()
 
   app.on('activate', function () {

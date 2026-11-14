@@ -1,11 +1,22 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
 // The functions the UI is allowed to call in the main process
 const api = {
   listBooks: () => ipcRenderer.invoke('library:list'),
   readBook: (id: string) => ipcRenderer.invoke('library:read', id),
-  openLibraryFolder: () => ipcRenderer.invoke('library:open-folder')
+  openLibraryFolder: () => ipcRenderer.invoke('library:open-folder'),
+
+  toggleFullscreen: () => ipcRenderer.invoke('window:toggle-fullscreen'),
+  isFullscreen: () => ipcRenderer.invoke('window:is-fullscreen'),
+  // Calls back whenever full screen changes; returns a function that stops listening
+  onFullscreenChange: (callback: (isFullscreen: boolean) => void) => {
+    const listener = (_event: IpcRendererEvent, value: boolean): void => callback(value)
+    ipcRenderer.on('window:fullscreen-changed', listener)
+    return () => {
+      ipcRenderer.removeListener('window:fullscreen-changed', listener)
+    }
+  }
 }
 
 if (process.contextIsolated) {
