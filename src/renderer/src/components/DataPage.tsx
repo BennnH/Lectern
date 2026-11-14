@@ -5,7 +5,7 @@ import { FileBraces, FileSpreadsheet, FolderOpen } from 'lucide-react'
 import { clearData, dataSummary } from '../lib/store'
 import { formatDuration } from '../lib/stats'
 import ConfirmDialog from './ConfirmDialog'
-import { PageLayout, Section } from './Page'
+import { PageLayout, Section, Stat } from './Page'
 
 const isMac = window.electron.process.platform === 'darwin'
 
@@ -46,15 +46,6 @@ function SecondaryButton({
       <Icon size={15} />
       {children}
     </button>
-  )
-}
-
-function Stat({ value, label }: { value: string; label: string }): React.JSX.Element {
-  return (
-    <div>
-      <p className="text-2xl font-semibold tracking-tight text-neutral-100 tabular-nums">{value}</p>
-      <p className="mt-0.5 text-xs text-neutral-500">{label}</p>
-    </div>
   )
 }
 

@@ -132,3 +132,23 @@ export function currentStreak(sessions: ReadingSession[]): number {
   }
   return streak
 }
+
+// The day after a day key, e.g. "2026-11-30" → "2026-12-01"
+function nextDayKey(key: string): string {
+  const [year, month, day] = key.split('-').map(Number)
+  return dayKey(new Date(year, month - 1, day + 1).getTime())
+}
+
+// Your longest run of days in a row with some reading, ever
+export function longestStreak(sessions: ReadingSession[]): number {
+  const days = [...totalsByDay(sessions).keys()].sort()
+  let longest = 0
+  let run = 0
+  let previous: string | null = null
+  for (const day of days) {
+    run = previous !== null && day === nextDayKey(previous) ? run + 1 : 1
+    longest = Math.max(longest, run)
+    previous = day
+  }
+  return longest
+}

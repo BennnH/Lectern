@@ -7,11 +7,17 @@ import { EASE_OUT } from '../lib/motion'
 type PageLayoutProps = {
   title: string
   subtitle?: string
+  wide?: boolean // for pages with something big on them, like the reading calendar
   children: React.ReactNode
 }
 
 // A scrolling page with a big title, which fades in when you switch to it
-export function PageLayout({ title, subtitle, children }: PageLayoutProps): React.JSX.Element {
+export function PageLayout({
+  title,
+  subtitle,
+  wide = false,
+  children
+}: PageLayoutProps): React.JSX.Element {
   return (
     <motion.div
       className="absolute inset-0 overflow-y-auto"
@@ -20,7 +26,7 @@ export function PageLayout({ title, subtitle, children }: PageLayoutProps): Reac
       exit={{ opacity: 0 }}
       transition={{ duration: 0.25, ease: EASE_OUT }}
     >
-      <div className="mx-auto max-w-3xl px-10 pt-14 pb-16">
+      <div className={`mx-auto px-10 pt-14 pb-16 ${wide ? 'max-w-5xl' : 'max-w-3xl'}`}>
         <header className="mb-8">
           <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
           {subtitle && <p className="mt-1 text-sm text-neutral-500">{subtitle}</p>}
@@ -46,6 +52,16 @@ export function EmptyState({ icon: Icon, title, children }: EmptyStateProps): Re
       </span>
       <p className="mt-4 font-medium text-neutral-200">{title}</p>
       <p className="mt-1.5 max-w-sm text-sm leading-relaxed text-neutral-500">{children}</p>
+    </div>
+  )
+}
+
+// A big number with a small label under it
+export function Stat({ value, label }: { value: string; label: string }): React.JSX.Element {
+  return (
+    <div>
+      <p className="text-2xl font-semibold tracking-tight text-neutral-100 tabular-nums">{value}</p>
+      <p className="mt-0.5 text-xs text-neutral-500">{label}</p>
     </div>
   )
 }
