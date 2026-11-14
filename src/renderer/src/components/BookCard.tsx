@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'motion/react'
 import { getCover } from '../lib/pdf'
-import { getProgress, percentRead } from '../lib/progress'
+import { getProgress, percentRead } from '../lib/store'
 import { EASE_OUT } from '../lib/motion'
 
 type Props = {
@@ -23,7 +23,7 @@ export default function BookCard({ book, index, onOpen }: Props): React.JSX.Elem
     }
   }, [book])
 
-  const percent = percentRead(getProgress(book.id))
+  const percent = percentRead(getProgress(book.fingerprint))
 
   return (
     <motion.button

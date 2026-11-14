@@ -3,7 +3,8 @@ import { AnimatePresence, motion } from 'motion/react'
 import { ArrowLeft } from 'lucide-react'
 import { closePdf, openPdf, type PdfDoc } from '../lib/pdf'
 import { blockForPage, getReflowBook, type ReflowBook } from '../lib/reflow'
-import { getProgress, saveProgress } from '../lib/progress'
+import { getProgress, saveProgress, saveSession } from '../lib/store'
+import { SessionTracker, fractionAt, isWorthKeeping } from '../lib/stats'
 import {
   DEFAULT_SETTINGS,
   FONT_SIZES,
@@ -20,10 +21,12 @@ import { EASE_OUT } from '../lib/motion'
 import PageView, { type ViewHandle } from './PageView'
 import ReflowView, { type ReflowLocation } from './ReflowView'
 import ReaderToolbar from './ReaderToolbar'
+import SessionPanel from './SessionPanel'
 
 type Props = {
   book: Book
-  onClose: () => void
+  // Called when you leave the book, with the session you just read (if it's worth showing)
+  onClose: (session: ReadingSession | null) => void
 }
 
 // Hide the controls and cursor after this long without mouse movement (ms)
@@ -38,9 +41,14 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
 
   const [doc, setDoc] = useState<PdfDoc | null>(null)
   const [settings, setSettings] = useState<ReaderSettings>(loadSettings)
-  const [page, setPage] = useState(() => getProgress(book.id)?.page ?? 1)
+  const [page, setPage] = useState(() => getProgress(book.fingerprint)?.page ?? 1)
   // Position in reflow mode (null = go by the page number instead)
-  const [block, setBlock] = useState<number | null>(() => getProgress(book.id)?.block ?? null)
+  const [block, setBlock] = useState<number | null>(
+    () => getProgress(book.fingerprint)?.block ?? null
+  )
+  // Records this reading session (created once the PDF has opened)
+  const [tracker, setTracker] = useState<SessionTracker | null>(null)
+  const [statsOpen, setStatsOpen] = useState(false)
   const [reflowBook, setReflowBook] = useState<ReflowBook | null>(null)
   const [preparing, setPreparing] = useState(0)
   const [location, setLocation] = useState<ReflowLocation | null>(null)
@@ -72,8 +80,13 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
           return
         }
         opened = loaded
+        const startPage = Math.min(
+          Math.max(1, getProgress(book.fingerprint)?.page ?? 1),
+          loaded.numPages
+        )
         setDoc(loaded)
-        setPage((p) => Math.min(Math.max(1, p), loaded.numPages))
+        setPage(startPage)
+        setTracker(new SessionTracker(book, startPage, loaded.numPages))
       })
       .catch(() => {
         if (!cancelled) setError('This PDF could not be opened.')
@@ -82,7 +95,7 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
       cancelled = true
       if (opened) closePdf(opened)
     }
-  }, [book.id])
+  }, [book])
 
   // Turn the PDF into flowing text the first time reflow mode needs it
   useEffect(() => {
@@ -110,24 +123,45 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
     return window.api.onFullscreenChange(setIsFullscreen)
   }, [])
 
-  // Where you are, as a fraction of the book
-  const fraction =
-    mode === 'reflow' && reflowBook && block !== null && reflowBook.blocks[block]
-      ? reflowBook.blocks[block].offset / reflowBook.totalChars
-      : page / total
+  // Where you are, as a fraction of the book (by real PDF pages, in both modes)
+  const fraction = fractionAt(page, total)
 
   // Remember settings and progress
   useEffect(() => saveSettings(settings), [settings])
   useEffect(() => {
     if (!doc) return
-    saveProgress(book.id, {
+    saveProgress(book.fingerprint, {
       page,
       total: doc.numPages,
       block: block ?? undefined,
       percent: fraction,
       lastOpened: Date.now()
     })
-  }, [doc, page, block, fraction, book.id])
+  }, [doc, page, block, fraction, book.fingerprint])
+
+  // Every time the screen changes, count it towards this session (saved as you go)
+  useEffect(() => {
+    if (!tracker) return
+    tracker.turn(page)
+    if (isWorthKeeping(tracker.session)) saveSession(tracker.session)
+  }, [tracker, page, location])
+
+  // Wrap up the session: count the screen you were on, save it, and return it
+  const finishSession = useCallback((): ReadingSession | null => {
+    if (!tracker) return null
+    tracker.turn(tracker.session.endPage)
+    if (!isWorthKeeping(tracker.session)) return null
+    saveSession(tracker.session)
+    return { ...tracker.session }
+  }, [tracker])
+
+  const close = useCallback(() => onClose(finishSession()), [onClose, finishSession])
+
+  // Also save the session if the app is closed or reloaded while reading
+  useEffect(() => {
+    window.addEventListener('beforeunload', finishSession)
+    return () => window.removeEventListener('beforeunload', finishSession)
+  }, [finishSession])
 
   const onPageChange = useCallback((newPage: number) => {
     setPage(newPage)
@@ -211,7 +245,8 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
         ArrowLeft: prev,
         ArrowUp: prev,
         PageUp: prev,
-        Escape: onClose,
+        Escape: close,
+        i: () => setStatsOpen((open) => !open),
         r: toggleMode,
         f: toggleFullscreen,
         t: cycleTheme,
@@ -231,7 +266,7 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose, toggleMode, toggleFullscreen, cycleTheme, toggleCrop, toggleFit, resize])
+  }, [close, toggleMode, toggleFullscreen, cycleTheme, toggleCrop, toggleFit, resize])
 
   // Show the controls when the mouse moves, hide them when it stops
   useEffect(() => {
@@ -328,9 +363,13 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
         )}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {statsOpen && tracker && <SessionPanel tracker={tracker} page={page} total={total} />}
+      </AnimatePresence>
+
       <motion.button
         type="button"
-        onClick={onClose}
+        onClick={close}
         onMouseDown={(e) => e.preventDefault()}
         animate={{ opacity: controlsVisible ? 1 : 0 }}
         transition={{ duration: 0.25 }}
@@ -346,6 +385,8 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
         settings={settings}
         status={status}
         isFullscreen={isFullscreen}
+        statsOpen={statsOpen}
+        onToggleStats={() => setStatsOpen((open) => !open)}
         onToggleMode={toggleMode}
         onCycleTheme={cycleTheme}
         onToggleCrop={toggleCrop}

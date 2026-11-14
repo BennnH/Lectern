@@ -7,6 +7,7 @@ import {
   Minimize,
   Minus,
   Moon,
+  Activity,
   MoveHorizontal,
   Plus,
   Sun,
@@ -22,6 +23,8 @@ type Props = {
   settings: ReaderSettings
   status: string
   isFullscreen: boolean
+  statsOpen: boolean
+  onToggleStats: () => void
   onToggleMode: () => void
   onCycleTheme: () => void
   onToggleCrop: () => void
@@ -135,6 +138,13 @@ export default function ReaderToolbar(props: Props): React.JSX.Element {
 
         <Divider />
 
+        <ToolButton
+          label="Session stats (I)"
+          active={props.statsOpen}
+          onClick={props.onToggleStats}
+        >
+          <Activity size={16} />
+        </ToolButton>
         <ToolButton
           label={isFullscreen ? 'Exit full screen (F)' : 'Full screen (F)'}
           onClick={props.onToggleFullscreen}

@@ -3,6 +3,7 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { registerLibraryHandlers } from './library'
+import { registerStoreHandlers } from './store'
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -64,6 +65,7 @@ app.whenReady().then(() => {
   })
 
   registerLibraryHandlers()
+  registerStoreHandlers()
   registerWindowHandlers()
   createWindow()
 

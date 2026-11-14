@@ -7,6 +7,11 @@ const api = {
   readBook: (id: string) => ipcRenderer.invoke('library:read', id),
   openLibraryFolder: () => ipcRenderer.invoke('library:open-folder'),
 
+  loadData: () => ipcRenderer.invoke('data:load'),
+  saveProgress: (bookId: string, progress: BookProgress) =>
+    ipcRenderer.invoke('data:save-progress', bookId, progress),
+  saveSession: (session: ReadingSession) => ipcRenderer.invoke('data:save-session', session),
+
   toggleFullscreen: () => ipcRenderer.invoke('window:toggle-fullscreen'),
   isFullscreen: () => ipcRenderer.invoke('window:is-fullscreen'),
   // Calls back whenever full screen changes; returns a function that stops listening

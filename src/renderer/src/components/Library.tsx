@@ -1,5 +1,8 @@
 import { motion } from 'motion/react'
+import { Flame } from 'lucide-react'
 import BookCard from './BookCard'
+import { getSessions } from '../lib/store'
+import { currentStreak, formatDuration, todayTotals } from '../lib/stats'
 
 type Props = {
   books: Book[] | null
@@ -8,6 +11,11 @@ type Props = {
 }
 
 export default function Library({ books, onOpen, onOpenFolder }: Props): React.JSX.Element {
+  // Today's reading and your streak, shown under the title
+  const sessions = getSessions()
+  const today = todayTotals(sessions)
+  const streak = currentStreak(sessions)
+
   return (
     <motion.div
       className="absolute inset-0 overflow-y-auto"
@@ -21,8 +29,21 @@ export default function Library({ books, onOpen, onOpenFolder }: Props): React.J
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">Library</h1>
             {books && books.length > 0 && (
-              <p className="mt-1 text-sm text-neutral-500">
-                {books.length} {books.length === 1 ? 'book' : 'books'}
+              <p className="mt-1 flex items-center gap-2 text-sm text-neutral-500">
+                <span>
+                  {books.length} {books.length === 1 ? 'book' : 'books'}
+                </span>
+                {today && (
+                  <span>
+                    · Today {today.pages} {today.pages === 1 ? 'page' : 'pages'},{' '}
+                    {formatDuration(today.activeMs)}
+                  </span>
+                )}
+                {streak > 0 && (
+                  <span className="flex items-center gap-1 text-amber-400/90">
+                    · <Flame size={14} /> {streak}-day streak
+                  </span>
+                )}
               </p>
             )}
           </div>

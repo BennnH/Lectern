@@ -1,10 +1,13 @@
 import { app, ipcMain, shell } from 'electron'
-import { mkdir, readdir, readFile, stat } from 'fs/promises'
+import { createHash } from 'crypto'
+import { mkdir, open, readdir, readFile, stat } from 'fs/promises'
 import { basename, extname, join } from 'path'
 
-// A PDF in the library folder. The id is just the file name.
+// A PDF in the library folder. The id is the file name; the fingerprint identifies the
+// book by its contents, so renaming the file doesn't lose your progress or stats.
 export type BookFile = {
   id: string
+  fingerprint: string
   title: string
   size: number
   modified: number
@@ -13,6 +16,34 @@ export type BookFile = {
 // ~/Documents/Lectern — created automatically if it doesn't exist
 export function getLibraryDir(): string {
   return join(app.getPath('documents'), 'Lectern')
+}
+
+const CHUNK = 64 * 1024
+const fingerprints = new Map<string, string>()
+
+// A short ID made from the file's size plus its first and last 64 KB
+async function fingerprint(path: string, size: number, modified: number): Promise<string> {
+  const cacheKey = `${path}|${size}|${modified}`
+  const cached = fingerprints.get(cacheKey)
+  if (cached) return cached
+
+  const file = await open(path, 'r')
+  try {
+    const hash = createHash('sha1').update(String(size))
+    const head = Buffer.alloc(Math.min(CHUNK, size))
+    await file.read(head, 0, head.length, 0)
+    hash.update(head)
+    if (size > CHUNK) {
+      const tail = Buffer.alloc(Math.min(CHUNK, size - CHUNK))
+      await file.read(tail, 0, tail.length, size - tail.length)
+      hash.update(tail)
+    }
+    const result = hash.digest('hex').slice(0, 16)
+    fingerprints.set(cacheKey, result)
+    return result
+  } finally {
+    await file.close()
+  }
 }
 
 async function listBooks(): Promise<BookFile[]> {
@@ -24,9 +55,11 @@ async function listBooks(): Promise<BookFile[]> {
 
   for (const entry of entries) {
     if (!entry.isFile() || extname(entry.name).toLowerCase() !== '.pdf') continue
-    const info = await stat(join(dir, entry.name))
+    const path = join(dir, entry.name)
+    const info = await stat(path)
     books.push({
       id: entry.name,
+      fingerprint: await fingerprint(path, info.size, info.mtimeMs),
       title: basename(entry.name, extname(entry.name)).replace(/_+/g, ' '),
       size: info.size,
       modified: info.mtimeMs

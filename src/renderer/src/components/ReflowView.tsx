@@ -45,6 +45,8 @@ export default function ReflowView({
   // Which screen each block starts and ends on
   const blockPages = useRef(new Map<number, { first: number; last: number }>())
   const requestedImages = useRef(new Set<number>())
+  // After a re-layout, the screen we're about to jump to (until React has caught up)
+  const expectedIndex = useRef<number | null>(null)
 
   const [area, setArea] = useState({ width: 0, height: 0 })
   const [section, setSection] = useState(() =>
@@ -58,6 +60,7 @@ export default function ReflowView({
   const [animate, setAnimate] = useState(false)
   const [fontReady, setFontReady] = useState(false)
   const [images, setImages] = useState<Record<number, string>>({})
+  const [layoutVersion, setLayoutVersion] = useState(0)
 
   const pageWidth = Math.min(area.width, Math.round(fontSize * MAX_LINE_EMS))
   const pageHeight = area.height
@@ -146,14 +149,22 @@ export default function ReflowView({
     else if (goal.block !== undefined) index = pages.get(goal.block)?.first ?? 0
 
     // Jump straight there (no slide animation) after a re-layout
+    const newIndex = Math.min(Math.max(0, index), count - 1)
+    expectedIndex.current = newIndex
     setAnimate(false)
     setPageCount(count)
-    setPageIndex(Math.min(Math.max(0, index), count - 1))
+    setPageIndex(newIndex)
+    setLayoutVersion((version) => version + 1)
   }, [section, fontSize, pageWidth, pageHeight, stride, fontReady])
 
   // Tell the reader which text is on screen (for saving progress)
   useEffect(() => {
     if (blockPages.current.size === 0) return // not laid out yet
+    // Mid-way through a re-layout the screen number is out of date: wait for the jump
+    if (expectedIndex.current !== null) {
+      if (pageIndex !== expectedIndex.current) return
+      expectedIndex.current = null
+    }
     // The first block that's still showing on this screen
     let block = start
     for (const [index, pages] of blockPages.current) {
@@ -164,7 +175,7 @@ export default function ReflowView({
     }
     currentBlock.current = block
     onLocationChange({ block, pageInSection: pageIndex + 1, pagesInSection: pageCount })
-  }, [pageIndex, pageCount, start, onLocationChange])
+  }, [pageIndex, pageCount, start, layoutVersion, onLocationChange])
 
   const next = (): void => {
     if (pageIndex < pageCount - 1) {
