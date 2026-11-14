@@ -1,9 +1,10 @@
 {
   "name": "lectern",
+  "productName": "Lectern",
   "version": "1.0.0",
   "description": "An Electron application with React and TypeScript",
   "main": "./out/main/index.js",
-  "author": "example.com",
+  "author": "Ben Hardy",
   "homepage": "https://electron-vite.org",
   "scripts": {
     "format": "prettier --write .",
