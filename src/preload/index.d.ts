@@ -16,6 +16,7 @@ declare global {
     loadData(): Promise<StoredData>
     saveProgress(bookId: string, progress: BookProgress): Promise<void>
     saveSession(session: ReadingSession): Promise<void>
+    keepScreenOn(on: boolean): Promise<void>
     toggleFullscreen(): Promise<void>
     isFullscreen(): Promise<boolean>
     onFullscreenChange(callback: (isFullscreen: boolean) => void): () => void

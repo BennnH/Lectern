@@ -12,6 +12,7 @@ const api = {
     ipcRenderer.invoke('data:save-progress', bookId, progress),
   saveSession: (session: ReadingSession) => ipcRenderer.invoke('data:save-session', session),
 
+  keepScreenOn: (on: boolean) => ipcRenderer.invoke('window:keep-screen-on', on),
   toggleFullscreen: () => ipcRenderer.invoke('window:toggle-fullscreen'),
   isFullscreen: () => ipcRenderer.invoke('window:is-fullscreen'),
   // Calls back whenever full screen changes; returns a function that stops listening

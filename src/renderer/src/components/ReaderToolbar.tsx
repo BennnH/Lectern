@@ -2,12 +2,13 @@ import { motion } from 'motion/react'
 import {
   AArrowDown,
   AArrowUp,
+  Activity,
+  CircleQuestionMark,
   Crop,
   Maximize,
   Minimize,
   Minus,
   Moon,
-  Activity,
   MoveHorizontal,
   Plus,
   Sun,
@@ -15,6 +16,7 @@ import {
   WrapText
 } from 'lucide-react'
 import type { ReaderSettings, ReadingMode } from '../lib/settings'
+import { shortcut, type CommandId } from '../lib/commands'
 import { EASE_OUT } from '../lib/motion'
 
 type Props = {
@@ -24,18 +26,16 @@ type Props = {
   status: string
   isFullscreen: boolean
   statsOpen: boolean
-  onToggleStats: () => void
-  onToggleMode: () => void
-  onCycleTheme: () => void
-  onToggleCrop: () => void
-  onToggleFit: () => void
-  onBigger: () => void
-  onSmaller: () => void
-  onResetSize: () => void
-  onToggleFullscreen: () => void
+  helpOpen: boolean
+  onCommand: (id: CommandId) => void
 }
 
 const THEME_ICON = { light: Sun, sepia: Sunset, dark: Moon }
+
+// Button tooltip with the command's key, e.g. "Theme (T)"
+function hint(label: string, id: CommandId): string {
+  return `${label} (${shortcut(id)})`
+}
 
 type ToolButtonProps = {
   label: string
@@ -72,7 +72,7 @@ function Divider(): React.JSX.Element {
 }
 
 export default function ReaderToolbar(props: Props): React.JSX.Element {
-  const { visible, mode, settings, status, isFullscreen } = props
+  const { visible, mode, settings, status, isFullscreen, onCommand } = props
   const ThemeIcon = THEME_ICON[settings.theme]
   const reflow = mode === 'reflow'
 
@@ -84,28 +84,28 @@ export default function ReaderToolbar(props: Props): React.JSX.Element {
     >
       <div className="flex items-center gap-1 rounded-full bg-neutral-900/85 px-2 py-1.5 shadow-xl ring-1 shadow-black/30 ring-white/10 backdrop-blur-md">
         <ToolButton
-          label={reflow ? 'Show original pages (R)' : 'Reflow text (R)'}
+          label={hint(reflow ? 'Show original pages' : 'Reflow text', 'view.mode')}
           active={reflow}
-          onClick={props.onToggleMode}
+          onClick={() => onCommand('view.mode')}
         >
           <WrapText size={16} />
         </ToolButton>
-        <ToolButton label="Theme (T)" onClick={props.onCycleTheme}>
+        <ToolButton label={hint('Theme', 'view.theme')} onClick={() => onCommand('view.theme')}>
           <ThemeIcon size={16} />
         </ToolButton>
         {!reflow && (
           <>
             <ToolButton
-              label="Crop margins (C)"
+              label={hint('Crop margins', 'view.crop')}
               active={settings.crop}
-              onClick={props.onToggleCrop}
+              onClick={() => onCommand('view.crop')}
             >
               <Crop size={16} />
             </ToolButton>
             <ToolButton
-              label="Fit to width (W)"
+              label={hint('Fit to width', 'view.fit')}
               active={settings.fit === 'width'}
-              onClick={props.onToggleFit}
+              onClick={() => onCommand('view.fit')}
             >
               <MoveHorizontal size={16} />
             </ToolButton>
@@ -114,19 +114,25 @@ export default function ReaderToolbar(props: Props): React.JSX.Element {
 
         <Divider />
 
-        <ToolButton label={reflow ? 'Smaller text (−)' : 'Zoom out (−)'} onClick={props.onSmaller}>
+        <ToolButton
+          label={hint(reflow ? 'Smaller text' : 'Zoom out', 'size.smaller')}
+          onClick={() => onCommand('size.smaller')}
+        >
           {reflow ? <AArrowDown size={16} /> : <Minus size={16} />}
         </ToolButton>
         <button
           type="button"
-          title={reflow ? 'Default text size (0)' : 'Reset zoom (0)'}
-          onClick={props.onResetSize}
+          title={hint(reflow ? 'Default text size' : 'Reset zoom', 'size.reset')}
+          onClick={() => onCommand('size.reset')}
           onMouseDown={(e) => e.preventDefault()}
           className="w-11 text-center text-xs text-neutral-300 tabular-nums transition-colors hover:text-white"
         >
           {reflow ? settings.fontSize : `${Math.round(settings.zoom * 100)}%`}
         </button>
-        <ToolButton label={reflow ? 'Bigger text (+)' : 'Zoom in (+)'} onClick={props.onBigger}>
+        <ToolButton
+          label={hint(reflow ? 'Bigger text' : 'Zoom in', 'size.bigger')}
+          onClick={() => onCommand('size.bigger')}
+        >
           {reflow ? <AArrowUp size={16} /> : <Plus size={16} />}
         </ToolButton>
 
@@ -139,15 +145,22 @@ export default function ReaderToolbar(props: Props): React.JSX.Element {
         <Divider />
 
         <ToolButton
-          label="Session stats (I)"
+          label={hint('Session stats', 'stats.toggle')}
           active={props.statsOpen}
-          onClick={props.onToggleStats}
+          onClick={() => onCommand('stats.toggle')}
         >
           <Activity size={16} />
         </ToolButton>
         <ToolButton
-          label={isFullscreen ? 'Exit full screen (F)' : 'Full screen (F)'}
-          onClick={props.onToggleFullscreen}
+          label={hint('Controls', 'help.toggle')}
+          active={props.helpOpen}
+          onClick={() => onCommand('help.toggle')}
+        >
+          <CircleQuestionMark size={16} />
+        </ToolButton>
+        <ToolButton
+          label={hint(isFullscreen ? 'Exit full screen' : 'Full screen', 'window.fullscreen')}
+          onClick={() => onCommand('window.fullscreen')}
         >
           {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
         </ToolButton>

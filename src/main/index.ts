@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, powerSaveBlocker } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -35,6 +35,9 @@ function createWindow(): void {
     mainWindow.webContents.send('window:fullscreen-changed', false)
   })
 
+  // If the page reloads mid-book, let the screen sleep normally again
+  mainWindow.webContents.on('did-start-loading', () => keepScreenOn(false))
+
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
@@ -47,7 +50,20 @@ function createWindow(): void {
   }
 }
 
+// Stops the display going to sleep while you read (null when the screen can sleep)
+let screenBlocker: number | null = null
+
+function keepScreenOn(on: boolean): void {
+  if (on && screenBlocker === null) {
+    screenBlocker = powerSaveBlocker.start('prevent-display-sleep')
+  } else if (!on && screenBlocker !== null) {
+    powerSaveBlocker.stop(screenBlocker)
+    screenBlocker = null
+  }
+}
+
 function registerWindowHandlers(): void {
+  ipcMain.handle('window:keep-screen-on', (_event, on: boolean) => keepScreenOn(on))
   ipcMain.handle('window:toggle-fullscreen', (event) => {
     const win = BrowserWindow.fromWebContents(event.sender)
     if (win) win.setFullScreen(!win.isFullScreen())

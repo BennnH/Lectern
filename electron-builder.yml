@@ -21,10 +21,8 @@ nsis:
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
-    - NSCameraUsageDescription: Application requests access to the device's camera.
-    - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
-    - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
-    - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
+    - NSMicrophoneUsageDescription: Lectern listens for voice commands like turn and back while voice mode is on. Sound is processed on this Mac and is never recorded or sent anywhere.
+    - NSDocumentsFolderUsageDescription: Lectern reads the PDFs in the Lectern folder inside your Documents folder.
   notarize: false
 dmg:
   artifactName: ${name}-${version}.${ext}

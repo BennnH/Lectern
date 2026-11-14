@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { ArrowLeft } from 'lucide-react'
 import { closePdf, openPdf, type PdfDoc } from '../lib/pdf'
 import { blockForPage, getReflowBook, type ReflowBook } from '../lib/reflow'
 import { getProgress, saveProgress, saveSession } from '../lib/store'
-import { SessionTracker, fractionAt, isWorthKeeping } from '../lib/stats'
+import { MAX_TURN_MS, SessionTracker, fractionAt, isWorthKeeping } from '../lib/stats'
+import { useCommandKeys, type CommandActions, type CommandId } from '../lib/commands'
 import {
   DEFAULT_SETTINGS,
   FONT_SIZES,
@@ -22,6 +23,7 @@ import PageView, { type ViewHandle } from './PageView'
 import ReflowView, { type ReflowLocation } from './ReflowView'
 import ReaderToolbar from './ReaderToolbar'
 import SessionPanel from './SessionPanel'
+import ControlsHelp from './ControlsHelp'
 
 type Props = {
   book: Book
@@ -49,6 +51,7 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
   // Records this reading session (created once the PDF has opened)
   const [tracker, setTracker] = useState<SessionTracker | null>(null)
   const [statsOpen, setStatsOpen] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
   const [reflowBook, setReflowBook] = useState<ReflowBook | null>(null)
   const [preparing, setPreparing] = useState(0)
   const [location, setLocation] = useState<ReflowLocation | null>(null)
@@ -230,43 +233,53 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
     window.api.toggleFullscreen()
   }, [])
 
-  // Keyboard shortcuts
+  // What each command does in the reader (the keys and voice words live in lib/commands.ts)
+  const actions = useMemo<CommandActions>(
+    () => ({
+      'page.next': () => viewRef.current?.next(),
+      'page.prev': () => viewRef.current?.prev(),
+      'size.bigger': () => resize(1),
+      'size.smaller': () => resize(-1),
+      'size.reset': () => resize(0),
+      'view.mode': toggleMode,
+      'view.theme': cycleTheme,
+      'view.crop': toggleCrop,
+      'view.fit': toggleFit,
+      'stats.toggle': () => setStatsOpen((open) => !open),
+      'book.close': close,
+      'window.fullscreen': toggleFullscreen,
+      'help.toggle': () => setHelpOpen((open) => !open)
+    }),
+    [resize, toggleMode, cycleTheme, toggleCrop, toggleFit, close, toggleFullscreen]
+  )
+
+  // While the controls list is open, ? and Esc just close it (nothing changes behind it)
+  const helpActions = useMemo<CommandActions>(
+    () => ({
+      'help.toggle': () => setHelpOpen(false),
+      'book.close': () => setHelpOpen(false)
+    }),
+    []
+  )
+
+  useCommandKeys(helpOpen ? helpActions : actions)
+
+  // Toolbar buttons run the same commands as the keys
+  const runCommand = useCallback((id: CommandId) => actions[id]?.(), [actions])
+
+  // Keep the screen on while you're reading, as turning pages by voice doesn't count
+  // as activity to the Mac. If no page has turned for a while (you've wandered off),
+  // let it sleep as normal again.
   useEffect(() => {
-    const onKey = (e: KeyboardEvent): void => {
-      if (e.metaKey || e.ctrlKey || e.altKey) return // leave Cmd+Q, Cmd+R etc. alone
-      const key = e.key.length === 1 ? e.key.toLowerCase() : e.key
-      const next = (): void => viewRef.current?.next()
-      const prev = (): void => viewRef.current?.prev()
-      const actions: Record<string, () => void> = {
-        ArrowRight: next,
-        ArrowDown: next,
-        PageDown: next,
-        ' ': next,
-        ArrowLeft: prev,
-        ArrowUp: prev,
-        PageUp: prev,
-        Escape: close,
-        i: () => setStatsOpen((open) => !open),
-        r: toggleMode,
-        f: toggleFullscreen,
-        t: cycleTheme,
-        c: toggleCrop,
-        w: toggleFit,
-        '=': () => resize(1),
-        '+': () => resize(1),
-        '-': () => resize(-1),
-        _: () => resize(-1),
-        '0': () => resize(0)
-      }
-      const action = actions[key]
-      if (action) {
-        e.preventDefault()
-        action()
-      }
+    window.api.keepScreenOn(true)
+    const timer = window.setTimeout(() => window.api.keepScreenOn(false), MAX_TURN_MS)
+    return () => window.clearTimeout(timer)
+  }, [page, location])
+  useEffect(() => {
+    return () => {
+      window.api.keepScreenOn(false)
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [close, toggleMode, toggleFullscreen, cycleTheme, toggleCrop, toggleFit, resize])
+  }, [])
 
   // Show the controls when the mouse moves, hide them when it stops
   useEffect(() => {
@@ -367,6 +380,10 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
         {statsOpen && tracker && <SessionPanel tracker={tracker} page={page} total={total} />}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {helpOpen && <ControlsHelp mode={mode} onClose={() => setHelpOpen(false)} />}
+      </AnimatePresence>
+
       <motion.button
         type="button"
         onClick={close}
@@ -386,15 +403,8 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
         status={status}
         isFullscreen={isFullscreen}
         statsOpen={statsOpen}
-        onToggleStats={() => setStatsOpen((open) => !open)}
-        onToggleMode={toggleMode}
-        onCycleTheme={cycleTheme}
-        onToggleCrop={toggleCrop}
-        onToggleFit={toggleFit}
-        onBigger={() => resize(1)}
-        onSmaller={() => resize(-1)}
-        onResetSize={() => resize(0)}
-        onToggleFullscreen={toggleFullscreen}
+        helpOpen={helpOpen}
+        onCommand={runCommand}
       />
     </motion.div>
   )
