@@ -1,3 +1,4 @@
+import type { CommandId } from './commands'
 import { PALETTES } from './palettes'
 
 // All of Lectern's preferences: how the reader looks, calendar colours, voice and so on.
@@ -56,6 +57,12 @@ export type VoiceSettings = {
   noiseFilter: boolean
 }
 
+// --- Keyboard shortcuts ---
+
+// Commands whose keys you've changed, and their keys (see lib/commands.ts). Commands not
+// listed use their default keys.
+export type Shortcuts = Partial<Record<CommandId, string[]>>
+
 // --- Everything together ---
 
 export type Settings = {
@@ -63,13 +70,15 @@ export type Settings = {
   voice: VoiceSettings
   calendarPalette: string // a palette id from lib/palettes.ts
   dailyGoal: number | null // pages a day, or null for no goal
+  shortcuts: Shortcuts
 }
 
 const DEFAULTS: Settings = {
   reader: DEFAULT_READER_SETTINGS,
   voice: { noiseFilter: true },
   calendarPalette: PALETTES[0].id,
-  dailyGoal: null
+  dailyGoal: null,
+  shortcuts: {}
 }
 
 let current: Settings = DEFAULTS
@@ -103,8 +112,19 @@ function withDefaults(saved: SavedSettings): Settings {
     reader: { ...DEFAULTS.reader, ...(saved.reader as Partial<ReaderSettings>) },
     voice: { ...DEFAULTS.voice, ...(saved.voice as Partial<VoiceSettings>) },
     calendarPalette: typeof palette === 'string' ? palette : DEFAULTS.calendarPalette,
-    dailyGoal: typeof goal === 'number' && goal >= 1 ? Math.round(goal) : null
+    dailyGoal: typeof goal === 'number' && goal >= 1 ? Math.round(goal) : null,
+    shortcuts: readShortcuts(saved.shortcuts)
   }
+}
+
+// Keeps only lists of keys (lib/commands.ts ignores commands and keys it doesn't know)
+function readShortcuts(saved: unknown): Shortcuts {
+  if (typeof saved !== 'object' || saved === null) return {}
+  const shortcuts: Record<string, string[]> = {}
+  for (const [id, keys] of Object.entries(saved)) {
+    if (Array.isArray(keys)) shortcuts[id] = keys.filter((key) => typeof key === 'string')
+  }
+  return shortcuts
 }
 
 // Before settings.json, preferences were kept in the window's own storage. This brings them

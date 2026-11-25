@@ -37,7 +37,8 @@ const THEME_ICON = { light: Sun, sepia: Sunset, dark: Moon }
 
 // Button tooltip with the command's key, e.g. "Theme (T)"
 function hint(label: string, id: CommandId): string {
-  return `${label} (${shortcut(id)})`
+  const key = shortcut(id)
+  return key ? `${label} (${key})` : label
 }
 
 type ToolButtonProps = {

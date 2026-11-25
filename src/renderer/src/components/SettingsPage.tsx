@@ -4,6 +4,7 @@ import { AnimatePresence } from 'motion/react'
 import { ArrowUpRight, ScrollText } from 'lucide-react'
 import appIcon from '../../../../resources/icon.png'
 import LicencesDialog from './LicencesDialog'
+import ShortcutSettings from './ShortcutSettings'
 import { PageLayout, Section } from './Page'
 
 const isMac = window.api.platform === 'darwin'
@@ -25,6 +26,13 @@ export default function SettingsPage(): React.JSX.Element {
 
   return (
     <PageLayout title="Settings">
+      <Section
+        title="Keyboard shortcuts"
+        description="The keys you use while reading. Page-turner remotes and foot pedals usually send the arrow keys, Page Up and Down or Space, which already work. If yours sends something else, add it here."
+      >
+        <ShortcutSettings />
+      </Section>
+
       <Section title="About">
         <div className="rounded-2xl bg-white/[0.03] p-5 ring-1 ring-white/5">
           <div className="flex items-center gap-4">

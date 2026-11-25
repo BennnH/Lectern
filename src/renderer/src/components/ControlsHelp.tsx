@@ -10,9 +10,11 @@ type Props = {
 }
 
 function Keys({ command }: { command: Command }): React.JSX.Element {
+  const labels = keyLabels(command)
   return (
     <div className="flex flex-wrap justify-end gap-1">
-      {keyLabels(command).map((label) => (
+      {labels.length === 0 && <span className="text-sm text-neutral-700">–</span>}
+      {labels.map((label) => (
         <kbd
           key={label}
           className="min-w-[1.6rem] rounded-md bg-white/10 px-1.5 py-0.5 text-center font-sans text-xs text-neutral-200 ring-1 ring-white/10"
@@ -40,6 +42,7 @@ function VoiceWords({ command }: { command: Command }): React.JSX.Element {
 
 // Every key and voice command, built from the command list in lib/commands.ts
 export default function ControlsHelp({ mode, onClose }: Props): React.JSX.Element {
+  const voiceKey = shortcut('voice.toggle') // null if you've removed its keys
   return (
     <motion.div
       className="app-no-drag fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm"
@@ -109,9 +112,9 @@ export default function ControlsHelp({ mode, onClose }: Props): React.JSX.Elemen
         </div>
 
         <p className="mt-5 text-xs leading-relaxed text-neutral-500">
-          Turn voice on with {shortcut('voice.toggle')} or the mic button, then say the words on
-          their own. You can also click the right or left half of the page to turn it. Press{' '}
-          {shortcut('help.toggle')} or Esc to close.
+          Turn voice on with {voiceKey ? `${voiceKey} or ` : ''}the mic button, then say the words
+          on their own. You can also click the right or left half of the page to turn it. Press ? or
+          Esc to close.
         </p>
       </motion.div>
     </motion.div>
