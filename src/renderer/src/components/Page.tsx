@@ -1,5 +1,4 @@
 import { motion } from 'motion/react'
-import type { LucideIcon } from 'lucide-react'
 import { EASE_OUT } from '../lib/motion'
 
 // Building blocks shared by the sidebar pages, so they all look and move the same
@@ -34,25 +33,6 @@ export function PageLayout({
         {children}
       </div>
     </motion.div>
-  )
-}
-
-type EmptyStateProps = {
-  icon: LucideIcon
-  title: string
-  children: React.ReactNode
-}
-
-// A placeholder for a page with nothing on it yet
-export function EmptyState({ icon: Icon, title, children }: EmptyStateProps): React.JSX.Element {
-  return (
-    <div className="flex flex-col items-center rounded-2xl border border-dashed border-white/10 px-8 py-16 text-center">
-      <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/5 text-neutral-400">
-        <Icon size={20} />
-      </span>
-      <p className="mt-4 font-medium text-neutral-200">{title}</p>
-      <p className="mt-1.5 max-w-sm text-sm leading-relaxed text-neutral-500">{children}</p>
-    </div>
   )
 }
 

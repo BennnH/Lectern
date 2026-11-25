@@ -45,8 +45,10 @@ function createWindow(): void {
   // If the page reloads mid-book, let the screen sleep normally again
   mainWindow.webContents.on('did-start-loading', () => keepScreenOn(false))
 
+  // Links that open a new window (like GitHub in Settings → About) open in your browser instead.
+  // Only web pages: nothing else is handed over to macOS to open.
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
+    if (new URL(details.url).protocol === 'https:') shell.openExternal(details.url)
     return { action: 'deny' }
   })
 
@@ -70,6 +72,8 @@ function keepScreenOn(on: boolean): void {
 }
 
 function registerWindowHandlers(): void {
+  // Lectern's version number (from package.json), shown in Settings → About
+  ipcMain.handle('app:version', () => app.getVersion())
   ipcMain.handle('window:keep-screen-on', (_event, on: boolean) => keepScreenOn(on))
   ipcMain.handle('window:toggle-fullscreen', (event) => {
     const win = BrowserWindow.fromWebContents(event.sender)

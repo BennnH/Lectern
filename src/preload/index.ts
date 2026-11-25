@@ -3,6 +3,7 @@ import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 // The functions the UI is allowed to call in the main process
 const api = {
   platform: process.platform, // 'darwin' on a Mac
+  appVersion: () => ipcRenderer.invoke('app:version'),
 
   listBooks: () => ipcRenderer.invoke('library:list'),
   readBook: (id: string) => ipcRenderer.invoke('library:read', id),

@@ -9,6 +9,7 @@ declare global {
 
   interface LecternAPI {
     platform: string // 'darwin' on a Mac
+    appVersion(): Promise<string> // e.g. '1.0.0'
     listBooks(): Promise<Book[]>
     readBook(id: string): Promise<Uint8Array>
     openLibraryFolder(): Promise<string>
