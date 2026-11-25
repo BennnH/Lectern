@@ -1,0 +1,62 @@
+# Builds Lectern for Macs with Apple Silicon and puts the .dmg on GitHub.
+#
+# - Push a version tag (git tag v1.0.0 && git push origin v1.0.0) and the .dmg is attached to
+#   a draft release, which only you can see until you press Publish on GitHub.
+# - Or run it by hand from the Actions tab ("Run workflow") to try a build without a release:
+#   the .dmg is then under Artifacts on that run's page.
+
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write # lets it create the draft release
+
+jobs:
+  mac:
+    runs-on: macos-latest # Apple Silicon
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v6
+
+      - name: Install Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Check the tag matches the version in package.json
+        if: github.ref_type == 'tag'
+        run: test "${GITHUB_REF_NAME#v}" = "$(node -p "require('./package.json').version")"
+
+      - name: Install packages
+        run: npm ci
+
+      # The speech model isn't kept in git (it's 40 MB); this downloads and checks it
+      - name: Download the voice model
+        run: npm run voice-model
+
+      - name: Build the app
+        run: npm run build:mac
+
+      - name: Keep the .dmg on this run's page
+        uses: actions/upload-artifact@v6
+        with:
+          name: Lectern-mac
+          path: dist/*.dmg
+          if-no-files-found: error
+
+      - name: Attach it to a draft release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" dist/*.dmg --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" dist/*.dmg --draft \
+              --title "Lectern ${GITHUB_REF_NAME#v}" --notes "Release notes to come."
+          fi
