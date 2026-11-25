@@ -11,7 +11,7 @@ import type { PageId } from './lib/pages'
 // Home is the sidebar and its pages; the reader takes over the whole window
 type Screen = { name: 'splash' } | { name: 'home' } | { name: 'reader'; book: Book }
 
-const isMac = window.electron.process.platform === 'darwin'
+const isMac = window.api.platform === 'darwin'
 
 function App(): React.JSX.Element {
   const [screen, setScreen] = useState<Screen>({ name: 'splash' })

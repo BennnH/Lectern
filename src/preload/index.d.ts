@@ -1,5 +1,3 @@
-import { ElectronAPI } from '@electron-toolkit/preload'
-
 declare global {
   interface Book {
     id: string // file name
@@ -10,6 +8,7 @@ declare global {
   }
 
   interface LecternAPI {
+    platform: string // 'darwin' on a Mac
     listBooks(): Promise<Book[]>
     readBook(id: string): Promise<Uint8Array>
     openLibraryFolder(): Promise<string>
@@ -29,7 +28,9 @@ declare global {
   }
 
   interface Window {
-    electron: ElectronAPI
     api: LecternAPI
   }
 }
+
+// Makes this file a module, which `declare global` above needs
+export {}

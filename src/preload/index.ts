@@ -1,8 +1,9 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
-import { electronAPI } from '@electron-toolkit/preload'
 
 // The functions the UI is allowed to call in the main process
 const api = {
+  platform: process.platform, // 'darwin' on a Mac
+
   listBooks: () => ipcRenderer.invoke('library:list'),
   readBook: (id: string) => ipcRenderer.invoke('library:read', id),
   openLibraryFolder: () => ipcRenderer.invoke('library:open-folder'),
@@ -33,16 +34,5 @@ const api = {
   }
 }
 
-if (process.contextIsolated) {
-  try {
-    contextBridge.exposeInMainWorld('electron', electronAPI)
-    contextBridge.exposeInMainWorld('api', api)
-  } catch (error) {
-    console.error(error)
-  }
-} else {
-  // @ts-ignore (define in dts)
-  window.electron = electronAPI
-  // @ts-ignore (define in dts)
-  window.api = api
-}
+// The page gets window.api and nothing else
+contextBridge.exposeInMainWorld('api', api)

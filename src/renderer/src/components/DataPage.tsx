@@ -7,7 +7,7 @@ import { formatDuration } from '../lib/stats'
 import ConfirmDialog from './ConfirmDialog'
 import { PageLayout, Section, Stat } from './Page'
 
-const isMac = window.electron.process.platform === 'darwin'
+const isMac = window.api.platform === 'darwin'
 
 // What each "clear" button deletes, shown in its confirmation
 const CLEAR_OPTIONS: Record<DataClearScope, { title: string; details: string; confirm: string }> = {

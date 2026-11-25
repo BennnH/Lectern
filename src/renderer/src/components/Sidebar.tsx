@@ -6,7 +6,7 @@ type Props = {
   onNavigate: (page: PageId) => void
 }
 
-const isMac = window.electron.process.platform === 'darwin'
+const isMac = window.api.platform === 'darwin'
 const MODIFIER = isMac ? '⌘' : 'Ctrl+'
 
 // The left-hand navigation shown everywhere except while reading
