@@ -84,7 +84,7 @@ export default function VoicePanel({
       <label className="mt-3 flex cursor-pointer items-center justify-between gap-3">
         <span>
           <span className="text-neutral-200">Noise filter</span>
-          <span className="block text-xs text-neutral-500">Try on and off on the walking pad</span>
+          <span className="block text-xs text-neutral-500">Try it on and off to see which hears you better</span>
         </span>
         <input
           type="checkbox"

@@ -34,7 +34,7 @@ export default function Splash({ onDone }: Props): React.JSX.Element {
         className="text-center"
       >
         <h1 className="text-5xl font-semibold tracking-tight">Lectern</h1>
-        <p className="mt-3 text-sm text-neutral-400">Read while you walk.</p>
+        <p className="mt-3 text-sm text-neutral-400">Hands-free reading.</p>
       </motion.div>
     </motion.div>
   )
