@@ -28,6 +28,7 @@ export default function SessionPanel({ tracker, page, total }: Props): React.JSX
   const rows: [string, string][] = [
     ['Reading', formatDuration(tracker.liveActiveMs())],
     ['Pages', String(session.pagesRead)],
+    ['Book page', `${page} of ${total}`],
     ['Progress', `${start}% → ${now}%  (${gain >= 0 ? '+' : ''}${gain}%)`],
     ['Pace', pace ? `${Math.round(pace)} pages / hour` : 'Needs ~10 min'],
     ['Book left', pace ? formatDuration(((total - page) / pace) * 3_600_000) : '—']

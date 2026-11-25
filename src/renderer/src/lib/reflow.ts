@@ -13,12 +13,17 @@ export type Block = {
   offset: number // characters before this block, for working out % read
 }
 
-// A chapter-sized slice of the book. Only one section is laid out at a time, which keeps
-// font-size changes fast even for very long books.
+// A chapter of the book: the text from one heading to the next. Only one is laid out at a
+// time, which keeps text-size changes fast even for very long books.
 export type Section = {
   start: number // first block index
   end: number // one past the last block index
+  chapter: boolean // has a chapter heading (false for a stretch of a book without headings)
 }
+
+// Laying out even a long chapter is quick (a 160-page one took under a tenth of a second),
+// but a book with no headings would be one enormous section, so those are split at this length
+const MAX_SECTION_CHARS = 400_000
 
 export type ReflowBook = {
   blocks: Block[]
@@ -308,17 +313,21 @@ function buildSections(blocks: Block[]): Section[] {
   const sections: Section[] = []
   let start = 0
   let chars = 0
+  const finish = (end: number): void => {
+    const chapter = blocks.slice(start, end).some((block) => block.kind === 'heading')
+    sections.push({ start, end, chapter })
+  }
   blocks.forEach((block, i) => {
     const newChapter = block.kind === 'heading' && chars > 1500
-    const tooLong = block.kind === 'paragraph' && chars > 30000
+    const tooLong = block.kind === 'paragraph' && chars > MAX_SECTION_CHARS
     if (i > start && (newChapter || tooLong)) {
-      sections.push({ start, end: i })
+      finish(i)
       start = i
       chars = 0
     }
     chars += blockLength(block)
   })
-  if (blocks.length > start) sections.push({ start, end: blocks.length })
+  if (blocks.length > start) finish(blocks.length)
   return sections
 }
 

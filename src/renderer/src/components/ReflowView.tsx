@@ -9,8 +9,9 @@ export type ReflowLocation = {
   block: number // first block visible on screen
   firstPage: number // the PDF pages this screen's text comes from (for counting pages read)
   lastPage: number
-  pageInSection: number
+  pageInSection: number // screens in this chapter, at the current text size
   pagesInSection: number
+  chapter: boolean // whether the section is a chapter (see Section in lib/reflow.ts)
 }
 
 type Props = {
@@ -103,7 +104,7 @@ export default function ReflowView({
   const pageWidth = Math.min(area.width, Math.round(fontSize * MAX_LINE_EMS))
   const pageHeight = area.height
   const stride = pageWidth + GAP
-  const { start, end } = book.sections[section]
+  const { start, end, chapter } = book.sections[section]
   const colours = REFLOW_COLOURS[theme]
 
   // Measure the space available (and again whenever the window resizes)
@@ -231,9 +232,10 @@ export default function ReflowView({
       firstPage,
       lastPage: Math.max(firstPage, lastPage),
       pageInSection: pageIndex + 1,
-      pagesInSection: pageCount
+      pagesInSection: pageCount,
+      chapter
     })
-  }, [pageIndex, pageCount, start, layoutVersion, onLocationChange, book.blocks])
+  }, [pageIndex, pageCount, start, chapter, layoutVersion, onLocationChange, book.blocks])
 
   const next = (): void => {
     if (pageIndex < pageCount - 1) {

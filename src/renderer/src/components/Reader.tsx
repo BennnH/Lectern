@@ -352,7 +352,7 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
 
   const status =
     mode === 'reflow' && location
-      ? `${location.pageInSection} / ${location.pagesInSection} · ${Math.round(fraction * 100)}%`
+      ? `${location.pageInSection} / ${location.pagesInSection} in this ${location.chapter ? 'chapter' : 'section'}`
       : `${page} / ${total}`
 
   const startBlock =
