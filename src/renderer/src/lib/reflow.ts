@@ -368,8 +368,10 @@ export function getReflowBook(
   return book
 }
 
-// The first block that starts on (or after) a PDF page, used when switching modes
+// The first block with text on (or after) a PDF page, used when switching modes and for
+// Go to page. A paragraph that runs onto the page from the one before counts, so the lines
+// at the top of the page are never skipped.
 export function blockForPage(book: ReflowBook, page: number): number {
-  const index = book.blocks.findIndex((block) => block.page >= page)
+  const index = book.blocks.findIndex((block) => block.endPage >= page)
   return index === -1 ? Math.max(0, book.blocks.length - 1) : index
 }

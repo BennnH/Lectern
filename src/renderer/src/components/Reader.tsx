@@ -26,6 +26,7 @@ import ReflowView, { type ReflowLocation } from './ReflowView'
 import ReaderToolbar from './ReaderToolbar'
 import SessionPanel from './SessionPanel'
 import ControlsHelp from './ControlsHelp'
+import GoToPage from './GoToPage'
 import VoiceIndicator from './VoiceIndicator'
 import VoicePanel from './VoicePanel'
 
@@ -56,6 +57,11 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
   const [tracker, setTracker] = useState<SessionTracker | null>(null)
   const [statsOpen, setStatsOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
+
+  const [goToOpen, setGoToOpen] = useState(false)
+  // Goes up by one on every Go to page, so the reflow view lays out again from the new page
+  const [jumps, setJumps] = useState(0)
+
   // Voice commands always start off, and stop when you leave the book
   const [voiceOn, setVoiceOn] = useState(false)
   const [voicePanelOpen, setVoicePanelOpen] = useState(false)
@@ -254,11 +260,26 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
     showFlash(on ? 'Voice commands on' : 'Voice commands off')
   }, [voiceOn, showFlash])
 
+  // Jump straight to a page. The pages in between were never on screen, so they don't
+  // count as read.
+  const goToPage = useCallback(
+    (target: number) => {
+      setGoToOpen(false)
+      setPage(target)
+      setBlock(null) // in reflow mode, start from the text on that page
+      setJumps((count) => count + 1)
+      showFlash(`Page ${target}`)
+    },
+    [showFlash]
+  )
+  const closeGoTo = useCallback(() => setGoToOpen(false), [])
+
   // What each command does in the reader (the keys and voice words live in lib/commands.ts)
   const actions = useMemo<CommandActions>(
     () => ({
       'page.next': () => viewRef.current?.next(),
       'page.prev': () => viewRef.current?.prev(),
+      'page.goto': () => setGoToOpen(true),
       'size.bigger': () => resize(1),
       'size.smaller': () => resize(-1),
       'size.reset': () => resize(0),
@@ -284,13 +305,17 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
     []
   )
 
-  useCommandKeys(helpOpen ? helpActions : actions)
+  // While Go to page is open, Esc (or saying "library") just closes it
+  const goToActions = useMemo<CommandActions>(() => ({ 'book.close': closeGoTo }), [closeGoTo])
+
+  const activeActions = goToOpen ? goToActions : helpOpen ? helpActions : actions
+  useCommandKeys(activeActions)
 
   // Voice runs the same actions as the keys (see lib/voice for how it listens)
   const voice = useVoiceCommands({
     enabled: voiceOn,
     noiseFilter: voiceSettings.noiseFilter,
-    actions: helpOpen ? helpActions : actions
+    actions: activeActions
   })
 
   // Toolbar buttons run the same commands as the keys
@@ -359,11 +384,12 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
 
       {doc && mode === 'reflow' && reflowBook && (
         <ReflowView
-          key={bookKey}
+          key={`${bookKey}:${jumps}`}
           ref={viewRef}
           book={reflowBook}
           doc={doc}
           startBlock={startBlock}
+          startPage={block === null ? page : undefined}
           fontSize={settings.fontSize}
           theme={settings.theme}
           onLocationChange={onReflowLocation}
@@ -414,6 +440,18 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
       </AnimatePresence>
 
       <AnimatePresence>
+        {goToOpen && (
+          <GoToPage
+            firstPage={screenFirstPage}
+            lastPage={screenLastPage}
+            total={total}
+            onGo={goToPage}
+            onClose={closeGoTo}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {voiceOn && (
           <VoiceIndicator
             voice={voice}
@@ -447,7 +485,7 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
       </motion.button>
 
       <ReaderToolbar
-        visible={controlsVisible}
+        visible={controlsVisible || goToOpen}
         mode={mode}
         settings={settings}
         status={status}

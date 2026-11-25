@@ -18,6 +18,7 @@ type Props = {
   book: ReflowBook
   doc: PdfDoc
   startBlock: number
+  startPage?: number // for Go to page: the page to open at, which may be part-way through startBlock
   fontSize: number
   theme: PageTheme
   onLocationChange: (location: ReflowLocation) => void
@@ -45,6 +46,19 @@ function pageOnScreen(
   return block.page + (edge === 'end' ? Math.max(0, Math.ceil(share) - 1) : Math.floor(share))
 }
 
+// The screen a page starts on, when it starts part-way through a long paragraph (the
+// opposite of pageOnScreen). Otherwise, the paragraph's first screen.
+function screenForPage(
+  block: Block | undefined,
+  screens: { first: number; last: number } | undefined,
+  page: number | undefined
+): number {
+  if (!screens) return 0
+  if (!block || page === undefined || page <= block.page) return screens.first
+  const share = (page - block.page) / (block.endPage - block.page + 1)
+  return screens.first + Math.floor(share * (screens.last - screens.first + 1))
+}
+
 // Shows the book as flowing text, laid out into screen-sized pages with CSS columns.
 // Changing the font size re-wraps the text, like a Kindle.
 export default function ReflowView({
@@ -52,14 +66,19 @@ export default function ReflowView({
   book,
   doc,
   startBlock,
+  startPage,
   fontSize,
   theme,
   onLocationChange
 }: Props): React.JSX.Element {
   const areaRef = useRef<HTMLDivElement>(null)
   const columnsRef = useRef<HTMLDivElement>(null)
-  // Where to land after the next layout: a block, or the start/end of a section
-  const target = useRef<{ block?: number; edge?: 'start' | 'end' } | null>({ block: startBlock })
+  // Where to land after the next layout: a block (optionally a page part-way through it),
+  // or the start/end of a section
+  const target = useRef<{ block?: number; page?: number; edge?: 'start' | 'end' } | null>({
+    block: startBlock,
+    page: startPage
+  })
   const currentBlock = useRef(startBlock)
   // Which screen each block starts and ends on
   const blockPages = useRef(new Map<number, { first: number; last: number }>())
@@ -165,7 +184,8 @@ export default function ReflowView({
     target.current = null
     let index = 0
     if (goal.edge === 'end') index = count - 1
-    else if (goal.block !== undefined) index = pages.get(goal.block)?.first ?? 0
+    else if (goal.block !== undefined)
+      index = screenForPage(book.blocks[goal.block], pages.get(goal.block), goal.page)
 
     // Jump straight there (no slide animation) after a re-layout
     const newIndex = Math.min(Math.max(0, index), count - 1)
@@ -174,7 +194,7 @@ export default function ReflowView({
     setPageCount(count)
     setPageIndex(newIndex)
     setLayoutVersion((version) => version + 1)
-  }, [section, fontSize, pageWidth, pageHeight, stride, fontReady])
+  }, [section, fontSize, pageWidth, pageHeight, stride, fontReady, book.blocks])
 
   // Tell the reader which text is on screen (for saving progress)
   useEffect(() => {

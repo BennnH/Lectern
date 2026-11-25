@@ -141,9 +141,15 @@ export default function ReaderToolbar(props: Props): React.JSX.Element {
 
         <Divider />
 
-        <span className="px-2 text-xs whitespace-nowrap text-neutral-400 tabular-nums">
+        <button
+          type="button"
+          title={hint('Go to page', 'page.goto')}
+          onClick={() => onCommand('page.goto')}
+          onMouseDown={(e) => e.preventDefault()}
+          className="rounded-full px-2 py-1 text-xs whitespace-nowrap text-neutral-400 tabular-nums transition-colors hover:bg-white/10 hover:text-white"
+        >
           {status}
-        </span>
+        </button>
 
         <Divider />
 

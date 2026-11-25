@@ -15,6 +15,7 @@ import type { ReadingMode } from './settings'
 export type CommandId =
   | 'page.next'
   | 'page.prev'
+  | 'page.goto'
   | 'size.bigger'
   | 'size.smaller'
   | 'size.reset'
@@ -58,6 +59,13 @@ export const COMMANDS: Command[] = [
     group: 'Pages',
     keys: ['ArrowLeft', 'ArrowUp', 'PageUp'],
     voice: ['go back', 'previous']
+  },
+  {
+    id: 'page.goto',
+    label: 'Go to page',
+    group: 'Pages',
+    keys: ['g'],
+    voice: []
   },
   {
     id: 'size.bigger',
@@ -208,10 +216,18 @@ export function commandForKey(e: KeyboardEvent): CommandId | null {
   return BY_KEY.get(key) ?? null
 }
 
+// Whether a key press is going into a text box (where keys mean letters, not commands)
+function isTyping(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false
+  if (target.isContentEditable || target instanceof HTMLTextAreaElement) return true
+  return target instanceof HTMLInputElement && ['text', 'number', 'search'].includes(target.type)
+}
+
 // Runs the matching action whenever a command's key is pressed
 export function useCommandKeys(actions: CommandActions): void {
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
+      if (isTyping(e.target)) return // typing a page number shouldn't turn pages
       const id = commandForKey(e)
       const action = id ? actions[id] : undefined
       if (!action) return
