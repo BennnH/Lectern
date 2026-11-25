@@ -31,6 +31,10 @@ interface StoredData {
   sessions: ReadingSession[]
 }
 
+// Your preferences as saved in settings.json. The UI decides what's in it
+// (see src/renderer/src/lib/settings.ts), so to the main process it's just an object.
+type SavedSettings = Record<string, unknown>
+
 // Ways to export the data (Data page)
 type DataExportFormat = 'json' | 'csv'
 

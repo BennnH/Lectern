@@ -5,6 +5,7 @@ import Home from './components/Home'
 import Reader from './components/Reader'
 import SessionRecap from './components/SessionRecap'
 import { getSessions, importOldProgress, loadStore, saveSession } from './lib/store'
+import { loadSettings } from './lib/settings'
 import { isWorthKeeping } from './lib/stats'
 import type { PageId } from './lib/pages'
 
@@ -20,8 +21,8 @@ function App(): React.JSX.Element {
   // The session to show a recap card for (when you leave the reader)
   const [recap, setRecap] = useState<ReadingSession | null>(null)
 
-  // While the splash is showing: load your saved data, then the library. The library is
-  // refreshed whenever you come back to the window (e.g. after adding PDFs in Finder).
+  // While the splash is showing: load your saved data and settings, then the library.
+  // The library is refreshed whenever you come back to the window (e.g. after adding PDFs).
   useEffect(() => {
     const refresh = (): void => {
       window.api
@@ -32,7 +33,7 @@ function App(): React.JSX.Element {
         })
         .catch(() => setBooks([]))
     }
-    loadStore()
+    Promise.all([loadStore(), loadSettings()])
       .catch(() => undefined)
       .then(() => {
         // If you quit while reading last time, show that session's recap now

@@ -19,6 +19,8 @@ declare global {
     showDataFile(): Promise<void> // shows it in Finder
     exportData(format: DataExportFormat): Promise<string | null> // saved path, or null if cancelled
     clearData(scope: DataClearScope): Promise<StoredData> // the data that's left
+    loadSettings(): Promise<SavedSettings | null> // null if nothing has been saved yet
+    saveSettings(settings: SavedSettings): Promise<void>
     voiceModel(): Promise<{ url: string; available: boolean }>
     microphoneAccess(): Promise<'granted' | 'denied'>
     keepScreenOn(on: boolean): Promise<void>

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { buildCalendar } from '../lib/calendar'
-import { getPalette, loadPaletteId, savePaletteId } from '../lib/palettes'
+import { getPalette } from '../lib/palettes'
+import { getSettings, updateSettings } from '../lib/settings'
 import { currentStreak, longestStreak, totalsByDay } from '../lib/stats'
 import { getSessions } from '../lib/store'
 import { PageLayout, Stat } from './Page'
@@ -23,14 +24,14 @@ export default function StatsPage(): React.JSX.Element {
   }, [])
   const { calendar } = stats
 
-  const [paletteId, setPaletteId] = useState(loadPaletteId)
+  const [paletteId, setPaletteId] = useState(() => getSettings().calendarPalette)
   // A colour scheme being tried out in the picker (shown until you press Done or Cancel)
   const [previewId, setPreviewId] = useState<string | null>(null)
   const palette = getPalette(previewId ?? paletteId)
 
   const choosePalette = (id: string): void => {
     setPaletteId(id)
-    savePaletteId(id)
+    updateSettings({ calendarPalette: id })
   }
 
   return (

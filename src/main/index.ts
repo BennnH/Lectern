@@ -4,6 +4,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { registerLibraryHandlers } from './library'
 import { registerStoreHandlers } from './store'
+import { registerSettingsHandlers } from './settings'
 
 import { registerVoiceHandlers, registerVoiceScheme } from './voice'
 import { lockDownSession } from './security'
@@ -93,6 +94,7 @@ app.whenReady().then(() => {
   lockDownSession(is.dev ? process.env['ELECTRON_RENDERER_URL'] : undefined)
   registerLibraryHandlers()
   registerStoreHandlers()
+  registerSettingsHandlers()
   registerVoiceHandlers()
   registerWindowHandlers()
   createWindow()

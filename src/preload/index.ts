@@ -18,6 +18,9 @@ const api = {
   exportData: (format: DataExportFormat) => ipcRenderer.invoke('data:export', format),
   clearData: (scope: DataClearScope) => ipcRenderer.invoke('data:clear', scope),
 
+  loadSettings: () => ipcRenderer.invoke('settings:load'),
+  saveSettings: (settings: SavedSettings) => ipcRenderer.invoke('settings:save', settings),
+
   voiceModel: () => ipcRenderer.invoke('voice:model'),
   microphoneAccess: () => ipcRenderer.invoke('voice:microphone-access'),
 

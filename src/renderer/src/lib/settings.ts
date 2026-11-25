@@ -1,4 +1,11 @@
-// Reader preferences, shared by every book and remembered between launches
+import { PALETTES } from './palettes'
+
+// All of Lectern's preferences: how the reader looks, calendar colours, voice and so on.
+// They're loaded once when the app starts and kept in memory; every change is also sent to
+// the main process, which saves them to settings.json (see src/main/settings.ts).
+
+// --- The reader (shared by every book) ---
+
 export type ReadingMode = 'reflow' | 'original'
 export type FitMode = 'page' | 'width'
 export type PageTheme = 'light' | 'sepia' | 'dark'
@@ -12,7 +19,7 @@ export type ReaderSettings = {
   theme: PageTheme
 }
 
-export const DEFAULT_SETTINGS: ReaderSettings = {
+export const DEFAULT_READER_SETTINGS: ReaderSettings = {
   mode: 'reflow',
   fontSize: 22,
   fit: 'page',
@@ -36,29 +43,79 @@ export const REFLOW_COLOURS: Record<PageTheme, { background: string; text: strin
   dark: { background: '#101010', text: '#d9d4ca' }
 }
 
-const KEY = 'lectern:reader-settings'
-
-export function loadSettings(): ReaderSettings {
-  try {
-    const raw = localStorage.getItem(KEY)
-    return raw
-      ? { ...DEFAULT_SETTINGS, ...(JSON.parse(raw) as Partial<ReaderSettings>) }
-      : DEFAULT_SETTINGS
-  } catch {
-    return DEFAULT_SETTINGS
-  }
-}
-
-export function saveSettings(settings: ReaderSettings): void {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(settings))
-  } catch {
-    // Not worth crashing over
-  }
-}
-
 // The next step up or down a list of sizes (used for both zoom and font size)
 export function stepThrough(steps: number[], value: number, direction: 1 | -1): number {
   if (direction === 1) return steps.find((step) => step > value + 0.001) ?? value
   return [...steps].reverse().find((step) => step < value - 0.001) ?? value
+}
+
+// --- Voice (voice itself always starts off) ---
+
+export type VoiceSettings = {
+  // The browser's built-in noise filter on the microphone. Worth comparing on and off.
+  noiseFilter: boolean
+}
+
+// --- Everything together ---
+
+export type Settings = {
+  reader: ReaderSettings
+  voice: VoiceSettings
+  calendarPalette: string // a palette id from lib/palettes.ts
+}
+
+const DEFAULTS: Settings = {
+  reader: DEFAULT_READER_SETTINGS,
+  voice: { noiseFilter: true },
+  calendarPalette: PALETTES[0].id
+}
+
+let current: Settings = DEFAULTS
+
+// Call once when the app starts, before anything uses getSettings()
+export async function loadSettings(): Promise<void> {
+  const saved = await window.api.loadSettings()
+  if (saved) {
+    current = withDefaults(saved)
+  } else {
+    current = importOldSettings()
+    window.api.saveSettings(current)
+  }
+}
+
+export function getSettings(): Settings {
+  return current
+}
+
+// Changes some settings and saves them
+export function updateSettings(change: Partial<Settings>): void {
+  current = { ...current, ...change }
+  window.api.saveSettings(current)
+}
+
+// Settings saved by an older version may be missing something: fill in the defaults
+function withDefaults(saved: SavedSettings): Settings {
+  const palette = saved.calendarPalette
+  return {
+    reader: { ...DEFAULTS.reader, ...(saved.reader as Partial<ReaderSettings>) },
+    voice: { ...DEFAULTS.voice, ...(saved.voice as Partial<VoiceSettings>) },
+    calendarPalette: typeof palette === 'string' ? palette : DEFAULTS.calendarPalette
+  }
+}
+
+// Before settings.json, preferences were kept in the window's own storage. This brings them
+// across the first time (the old copies are left alone: nothing reads them any more).
+function importOldSettings(): Settings {
+  const read = (key: string): unknown => {
+    try {
+      return JSON.parse(localStorage.getItem(key) ?? 'null')
+    } catch {
+      return null
+    }
+  }
+  return withDefaults({
+    reader: read('lectern:reader-settings'),
+    voice: read('lectern:voice-settings'),
+    calendarPalette: localStorage.getItem('lectern:calendar-palette')
+  })
 }

@@ -7,18 +7,18 @@ import { getProgress, saveProgress, saveSession } from '../lib/store'
 import { MAX_TURN_MS, SessionTracker, fractionAt, isWorthKeeping } from '../lib/stats'
 import { useCommandKeys, type CommandActions, type CommandId } from '../lib/commands'
 import { useVoiceCommands } from '../lib/voice/useVoiceCommands'
-import { loadVoiceSettings, saveVoiceSettings, type VoiceSettings } from '../lib/voice/settings'
 import {
-  DEFAULT_SETTINGS,
+  DEFAULT_READER_SETTINGS,
   FONT_SIZES,
   REFLOW_COLOURS,
   THEMES,
   ZOOM_STEPS,
-  loadSettings,
-  saveSettings,
+  getSettings,
   stepThrough,
+  updateSettings,
   type PageTheme,
-  type ReaderSettings
+  type ReaderSettings,
+  type VoiceSettings
 } from '../lib/settings'
 import { EASE_OUT } from '../lib/motion'
 import PageView, { type ViewHandle } from './PageView'
@@ -47,7 +47,7 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
   const bookKey = `${book.id}:${book.modified}`
 
   const [doc, setDoc] = useState<PdfDoc | null>(null)
-  const [settings, setSettings] = useState<ReaderSettings>(loadSettings)
+  const [settings, setSettings] = useState<ReaderSettings>(() => getSettings().reader)
   const [page, setPage] = useState(() => getProgress(book.fingerprint)?.page ?? 1)
   // Position in reflow mode (null = go by the page number instead)
   const [block, setBlock] = useState<number | null>(
@@ -65,7 +65,7 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
   // Voice commands always start off, and stop when you leave the book
   const [voiceOn, setVoiceOn] = useState(false)
   const [voicePanelOpen, setVoicePanelOpen] = useState(false)
-  const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>(loadVoiceSettings)
+  const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>(() => getSettings().voice)
   const [reflowBook, setReflowBook] = useState<ReflowBook | null>(null)
   const [preparing, setPreparing] = useState(0)
   const [location, setLocation] = useState<ReflowLocation | null>(null)
@@ -144,8 +144,8 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
   const fraction = fractionAt(page, total)
 
   // Remember settings and progress
-  useEffect(() => saveSettings(settings), [settings])
-  useEffect(() => saveVoiceSettings(voiceSettings), [voiceSettings])
+  useEffect(() => updateSettings({ reader: settings }), [settings])
+  useEffect(() => updateSettings({ voice: voiceSettings }), [voiceSettings])
   useEffect(() => {
     if (!doc) return
     saveProgress(book.fingerprint, {
@@ -236,7 +236,7 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
       if (mode === 'reflow') {
         const fontSize =
           direction === 0
-            ? DEFAULT_SETTINGS.fontSize
+            ? DEFAULT_READER_SETTINGS.fontSize
             : stepThrough(FONT_SIZES, settings.fontSize, direction)
         setSettings({ ...settings, fontSize })
         showFlash(`Text size ${fontSize}`)

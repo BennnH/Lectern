@@ -2,7 +2,7 @@ import { motion } from 'motion/react'
 import { X } from 'lucide-react'
 import { getCommand } from '../lib/commands'
 import type { VoiceLogEntry, VoiceState } from '../lib/voice/useVoiceCommands'
-import type { VoiceSettings } from '../lib/voice/settings'
+import type { VoiceSettings } from '../lib/settings'
 import { EASE_OUT } from '../lib/motion'
 import { LevelBar } from './VoiceLevel'
 

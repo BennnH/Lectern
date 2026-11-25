@@ -41,22 +41,3 @@ export function shade(palette: Palette, level: number): string {
 export function shades(palette: Palette): string[] {
   return STRENGTH.map((_, level) => shade(palette, level))
 }
-
-// Your choice is remembered between launches
-const STORAGE_KEY = 'lectern:calendar-palette'
-
-export function loadPaletteId(): string {
-  try {
-    return getPalette(localStorage.getItem(STORAGE_KEY) ?? '').id
-  } catch {
-    return PALETTES[0].id
-  }
-}
-
-export function savePaletteId(id: string): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, id)
-  } catch {
-    // Not being able to remember a preference isn't worth bothering anyone about
-  }
-}
