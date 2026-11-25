@@ -151,17 +151,22 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
     })
   }, [doc, page, block, fraction, book.fingerprint])
 
+  // The PDF pages on screen, for counting pages read: in reflow mode one screen can show
+  // text from more than one page
+  const screenFirstPage = mode === 'reflow' && location ? location.firstPage : page
+  const screenLastPage = mode === 'reflow' && location ? location.lastPage : page
+
   // Every time the screen changes, count it towards this session (saved as you go)
   useEffect(() => {
     if (!tracker) return
-    tracker.turn(page)
+    tracker.turn(screenFirstPage, screenLastPage)
     if (isWorthKeeping(tracker.session)) saveSession(tracker.session)
-  }, [tracker, page, location])
+  }, [tracker, screenFirstPage, screenLastPage, location])
 
   // Wrap up the session: count the screen you were on, save it, and return it
   const finishSession = useCallback((): ReadingSession | null => {
     if (!tracker) return null
-    tracker.turn(tracker.session.endPage)
+    tracker.finish()
     if (!isWorthKeeping(tracker.session)) return null
     saveSession(tracker.session)
     return { ...tracker.session }

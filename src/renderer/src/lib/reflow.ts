@@ -9,6 +9,7 @@ export type Block = {
   kind: BlockKind
   text: string
   page: number // the PDF page this block starts on
+  endPage: number // and the page it ends on (a paragraph can run onto the next page)
   offset: number // characters before this block, for working out % read
 }
 
@@ -193,13 +194,19 @@ function median(values: number[]): number {
 
 async function buildBlocks(doc: PdfDoc, pages: PageText[], bodySize: number): Promise<Block[]> {
   const blocks: Block[] = []
-  let paragraph: { text: string; page: number } | null = null
+  let paragraph: { text: string; page: number; endPage: number } | null = null
   let paragraphEnded = true
   let dropCap = ''
 
   const finishParagraph = (): void => {
     if (paragraph)
-      blocks.push({ kind: 'paragraph', text: paragraph.text, page: paragraph.page, offset: 0 })
+      blocks.push({
+        kind: 'paragraph',
+        text: paragraph.text,
+        page: paragraph.page,
+        endPage: paragraph.endPage,
+        offset: 0
+      })
     paragraph = null
   }
 
@@ -209,7 +216,7 @@ async function buildBlocks(doc: PdfDoc, pages: PageText[], bodySize: number): Pr
       finishParagraph()
       paragraphEnded = true
       if (await pageHasInk(doc, page.page)) {
-        blocks.push({ kind: 'image', text: '', page: page.page, offset: 0 })
+        blocks.push({ kind: 'image', text: '', page: page.page, endPage: page.page, offset: 0 })
       }
       continue
     }
@@ -245,7 +252,14 @@ async function buildBlocks(doc: PdfDoc, pages: PageText[], bodySize: number): Pr
         finishParagraph()
         const last = blocks[blocks.length - 1]
         if (previousWasHeading && last?.kind === 'heading') last.text += `\n${line.text}`
-        else blocks.push({ kind: 'heading', text: line.text, page: page.page, offset: 0 })
+        else
+          blocks.push({
+            kind: 'heading',
+            text: line.text,
+            page: page.page,
+            endPage: page.page,
+            offset: 0
+          })
         previousWasHeading = true
         paragraphEnded = true
         previous = line
@@ -259,7 +273,7 @@ async function buildBlocks(doc: PdfDoc, pages: PageText[], bodySize: number): Pr
       if (isCentred && line.x1 - line.x0 < width * 0.6) {
         // Short centred lines, e.g. "* * *" scene breaks
         finishParagraph()
-        blocks.push({ kind: 'scene', text, page: page.page, offset: 0 })
+        blocks.push({ kind: 'scene', text, page: page.page, endPage: page.page, offset: 0 })
         paragraphEnded = true
         previous = line
         continue
@@ -269,9 +283,10 @@ async function buildBlocks(doc: PdfDoc, pages: PageText[], bodySize: number): Pr
       const indented = indent > line.size * 0.6
       if (!paragraph || paragraphEnded || indented || bigGap) {
         finishParagraph()
-        paragraph = { text, page: page.page }
+        paragraph = { text, page: page.page, endPage: page.page }
       } else {
         paragraph.text = joinLines(paragraph.text, text)
+        paragraph.endPage = page.page
       }
 
       // A line that stops well short of the right margin ends its paragraph

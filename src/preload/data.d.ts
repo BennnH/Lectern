@@ -21,7 +21,7 @@ interface ReadingSession {
   endPage: number // where you stopped
   furthestPage: number
   totalPages: number
-  pagesRead: number // real PDF pages: furthest page reached minus the starting page
+  pagesRead: number // real PDF pages you spent 7+ seconds on, each counted once per session
   seen: boolean // whether its recap card has been shown
 }
 

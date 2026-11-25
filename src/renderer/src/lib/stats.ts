@@ -5,6 +5,10 @@
 export const MIN_TURN_MS = 3_000
 export const MAX_TURN_MS = 5 * 60_000
 
+// A page only counts as read once you've spent this long on it (adding up all its screens),
+// so flicking through to find your place doesn't add pages
+export const MIN_PAGE_MS = 7_000
+
 // A session is only kept if you read at least a page, or for at least this long
 const MIN_SESSION_MS = 60_000
 
@@ -21,10 +25,17 @@ export function isWorthKeeping(session: ReadingSession): boolean {
 export class SessionTracker {
   readonly session: ReadingSession
   private lastTurn: number
+  // The PDF pages on the screen you're looking at (in reflow mode one screen can show text
+  // from more than one page; with original pages it's always one)
+  private screen: { first: number; last: number }
+  // How long each page has been on screen this session, and the pages that count as read
+  private timeOnPage = new Map<number, number>()
+  private pagesCounted = new Set<number>()
 
   constructor(book: Book, page: number, totalPages: number) {
     const now = Date.now()
     this.lastTurn = now
+    this.screen = { first: page, last: page }
     this.session = {
       id: `${now}-${book.fingerprint}`,
       bookId: book.fingerprint,
@@ -41,16 +52,46 @@ export class SessionTracker {
     }
   }
 
-  // Call whenever the screen changes: counts the time spent on the screen you just left
-  turn(page: number): void {
+  // Call whenever the screen changes, with the pages now on screen. Adds the time spent on
+  // the screen you just left to each page it showed. A page counts once it's off the screen
+  // (forwards or back), if it was on screen long enough in total. Each page counts once per
+  // session, so going back to re-read it doesn't count it twice.
+  turn(firstPage: number, lastPage = firstPage): void {
     const now = Date.now()
     const gap = now - this.lastTurn
     if (gap >= MIN_TURN_MS && gap <= MAX_TURN_MS) this.session.activeMs += gap
+    const { first, last } = this.screen
+    for (let page = first; page <= last; page += 1) {
+      this.addTimeOnPage(page, gap)
+      if (page < firstPage || page > lastPage) this.countIfRead(page)
+    }
+    this.screen = { first: firstPage, last: Math.max(firstPage, lastPage) }
     this.lastTurn = now
     this.session.end = now
-    this.session.endPage = page
-    this.session.furthestPage = Math.max(this.session.furthestPage, page)
-    this.session.pagesRead = this.session.furthestPage - this.session.startPage
+    this.session.endPage = firstPage
+    this.session.furthestPage = Math.max(this.session.furthestPage, lastPage)
+  }
+
+  // Call when the book is closed: counts the time on the last screen. The pages you stop on
+  // aren't counted yet, as the book opens there next time and they count once you move on.
+  // The book's last page is the exception, since there's nowhere to move on to.
+  finish(): void {
+    const { first, last } = this.screen
+    this.turn(first, last)
+    if (last === this.session.totalPages) {
+      for (let page = first; page <= last; page += 1) this.countIfRead(page)
+    }
+  }
+
+  private addTimeOnPage(page: number, gap: number): void {
+    // A gap longer than MAX_TURN_MS is a break, but you still read the page before it
+    const time = (this.timeOnPage.get(page) ?? 0) + Math.min(gap, MAX_TURN_MS)
+    this.timeOnPage.set(page, time)
+  }
+
+  private countIfRead(page: number): void {
+    if ((this.timeOnPage.get(page) ?? 0) >= MIN_PAGE_MS) this.pagesCounted.add(page)
+    this.session.pagesRead = this.pagesCounted.size
   }
 
   // Reading time so far, including the screen you're on now (for the live panel).

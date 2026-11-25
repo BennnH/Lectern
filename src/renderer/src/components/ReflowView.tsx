@@ -1,12 +1,14 @@
 import { useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react'
 import { motion } from 'motion/react'
 import { renderPage, type PdfDoc } from '../lib/pdf'
-import type { ReflowBook } from '../lib/reflow'
+import type { Block, ReflowBook } from '../lib/reflow'
 import { REFLOW_COLOURS, type PageTheme } from '../lib/settings'
 import type { ViewHandle } from './PageView'
 
 export type ReflowLocation = {
   block: number // first block visible on screen
+  firstPage: number // the PDF pages this screen's text comes from (for counting pages read)
+  lastPage: number
   pageInSection: number
   pagesInSection: number
 }
@@ -25,6 +27,23 @@ type Props = {
 const GAP = 64
 // Keep lines a comfortable length: about this many font-sizes wide at most
 const MAX_LINE_EMS = 34
+
+// The PDF page a block has reached at the start or end of a screen. A paragraph can run
+// over several screens and pages, so part-way through, estimate the page from how far
+// through the paragraph this screen is.
+function pageOnScreen(
+  block: Block,
+  screens: { first: number; last: number } | undefined,
+  screen: number,
+  edge: 'start' | 'end'
+): number {
+  if (!screens) return block.page
+  const pageCount = block.endPage - block.page + 1
+  const screenCount = screens.last - screens.first + 1
+  const screensDone = screen - screens.first + (edge === 'end' ? 1 : 0)
+  const share = (pageCount * screensDone) / screenCount
+  return block.page + (edge === 'end' ? Math.max(0, Math.ceil(share) - 1) : Math.floor(share))
+}
 
 // Shows the book as flowing text, laid out into screen-sized pages with CSS columns.
 // Changing the font size re-wraps the text, like a Kindle.
@@ -165,17 +184,36 @@ export default function ReflowView({
       if (pageIndex !== expectedIndex.current) return
       expectedIndex.current = null
     }
-    // The first block that's still showing on this screen
-    let block = start
+    // The first and last blocks showing on this screen (blocks are in reading order)
+    let block = -1
+    let lastBlock = start
     for (const [index, pages] of blockPages.current) {
-      if (pages.last >= pageIndex) {
-        block = index
-        break
-      }
+      if (pages.first > pageIndex) break // this block and the rest start on later screens
+      if (block === -1 && pages.last >= pageIndex) block = index
+      lastBlock = index
     }
+    if (block === -1) block = start
     currentBlock.current = block
-    onLocationChange({ block, pageInSection: pageIndex + 1, pagesInSection: pageCount })
-  }, [pageIndex, pageCount, start, layoutVersion, onLocationChange])
+    const firstPage = pageOnScreen(
+      book.blocks[block],
+      blockPages.current.get(block),
+      pageIndex,
+      'start'
+    )
+    const lastPage = pageOnScreen(
+      book.blocks[lastBlock],
+      blockPages.current.get(lastBlock),
+      pageIndex,
+      'end'
+    )
+    onLocationChange({
+      block,
+      firstPage,
+      lastPage: Math.max(firstPage, lastPage),
+      pageInSection: pageIndex + 1,
+      pagesInSection: pageCount
+    })
+  }, [pageIndex, pageCount, start, layoutVersion, onLocationChange, book.blocks])
 
   const next = (): void => {
     if (pageIndex < pageCount - 1) {
