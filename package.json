@@ -2,10 +2,10 @@
   "name": "lectern",
   "productName": "Lectern",
   "version": "1.0.0",
-  "description": "An Electron application with React and TypeScript",
+  "description": "A PDF reader with offline voice commands for hands-free reading, plus reading stats",
   "main": "./out/main/index.js",
   "author": "Ben Hardy",
-  "homepage": "https://electron-vite.org",
+  "homepage": "https://github.com/BennnH/Lectern",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",
@@ -17,9 +17,7 @@
     "build": "npm run typecheck && electron-vite build",
     "postinstall": "install-electron && electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
-    "build:win": "npm run build && electron-builder --win",
-    "build:mac": "electron-vite build && electron-builder --mac",
-    "build:linux": "electron-vite build && electron-builder --linux",
+    "build:mac": "npm run build && electron-builder --mac",
     "voice-model": "sh scripts/voice-model.sh"
   },
   "dependencies": {
