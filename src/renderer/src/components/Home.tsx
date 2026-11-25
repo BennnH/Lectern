@@ -59,6 +59,7 @@ export default function Home({
               onOpen={onOpenBook}
               onOpenFolder={onOpenFolder}
               onOpenSettings={() => onNavigate('settings')}
+              onBooksAdded={onLibraryChange}
             />
           )}
           {page === 'stats' && <StatsPage key="stats" />}

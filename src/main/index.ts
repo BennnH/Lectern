@@ -45,6 +45,12 @@ function createWindow(): void {
   // If the page reloads mid-book, let the screen sleep normally again
   mainWindow.webContents.on('did-start-loading', () => keepScreenOn(false))
 
+  // The window only ever shows Lectern. If something tries to load another page in it (like a
+  // file dragged onto the window, which would otherwise open in place of the app), stop it.
+  mainWindow.webContents.on('will-navigate', (event) => {
+    if (event.url !== mainWindow.webContents.getURL()) event.preventDefault()
+  })
+
   // Links that open a new window (like GitHub in Settings → About) open in your browser instead.
   // Only web pages: nothing else is handed over to macOS to open.
   mainWindow.webContents.setWindowOpenHandler((details) => {

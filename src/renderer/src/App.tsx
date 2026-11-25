@@ -33,6 +33,22 @@ function App(): React.JSX.Element {
       .catch(() => setBooks([]))
   }, [])
 
+  // Files dragged onto the window do nothing, except PDFs dropped on the Library page, which
+  // handles them first (see Library.tsx). Without this the window would open the file itself.
+  useEffect(() => {
+    const ignore = (e: DragEvent): void => {
+      if (e.defaultPrevented) return // the Library page is taking it
+      e.preventDefault()
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'none'
+    }
+    window.addEventListener('dragover', ignore)
+    window.addEventListener('drop', ignore)
+    return () => {
+      window.removeEventListener('dragover', ignore)
+      window.removeEventListener('drop', ignore)
+    }
+  }, [])
+
   // While the splash is showing: load your saved data and settings, then the library.
   // The library is refreshed whenever you come back to the window (e.g. after adding PDFs).
   useEffect(() => {

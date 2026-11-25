@@ -16,6 +16,7 @@ declare global {
     libraryFolder(): Promise<LibraryFolder>
     chooseLibraryFolder(): Promise<LibraryFolder | null> // null if you cancel
     useDefaultLibraryFolder(): Promise<LibraryFolder>
+    addBooks(files: File[]): Promise<AddBooksResult>
     loadData(): Promise<StoredData>
     saveProgress(bookId: string, progress: BookProgress): Promise<void>
     saveSession(session: ReadingSession): Promise<void>

@@ -8,6 +8,13 @@ interface LibraryFolder {
   found: boolean // false if a folder you chose has gone (e.g. its drive is unplugged)
 }
 
+// What happened to the files dropped on the Library
+interface AddBooksResult {
+  added: string[] // titles of the books copied into the library folder
+  alreadyThere: string[] // titles of books that were already in the library
+  notPdf: number // how many files weren't PDFs
+}
+
 // Where you are in a book
 interface BookProgress {
   page: number // PDF page

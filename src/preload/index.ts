@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
+import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron'
 
 // The functions the UI is allowed to call in the main process
 const api = {
@@ -11,6 +11,13 @@ const api = {
   libraryFolder: () => ipcRenderer.invoke('library:folder'),
   chooseLibraryFolder: () => ipcRenderer.invoke('library:choose-folder'),
   useDefaultLibraryFolder: () => ipcRenderer.invoke('library:use-default-folder'),
+
+  // Files dropped on the Library: main gets where they are on disk, and copies in the PDFs
+  addBooks: (files: File[]) =>
+    ipcRenderer.invoke(
+      'library:add',
+      files.map((file) => webUtils.getPathForFile(file))
+    ),
 
   loadData: () => ipcRenderer.invoke('data:load'),
   saveProgress: (bookId: string, progress: BookProgress) =>
