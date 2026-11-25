@@ -39,16 +39,35 @@ function writeNow(): void {
   renameSync(temp, settingsFile)
 }
 
+// Saved a moment later, so clicking through text sizes doesn't write the file every time
+function scheduleWrite(): void {
+  if (!writeTimer) writeTimer = setTimeout(writeNow, 500)
+}
+
+// The folder you chose for your PDFs, or null for the default (see library.ts).
+// Only the main process changes it, after you pick a folder in the macOS folder picker:
+// the window can't set it to anything.
+export function getLibraryFolder(): string | null {
+  const folder = settings?.libraryFolder
+  return typeof folder === 'string' ? folder : null
+}
+
+export function setLibraryFolder(folder: string | null): void {
+  // undefined leaves it out of the file altogether
+  settings = { ...settings, libraryFolder: folder ?? undefined }
+  scheduleWrite()
+}
+
 export function registerSettingsHandlers(): void {
   load()
 
   ipcMain.handle('settings:load', () => settings)
 
-  // Saved a moment later, so clicking through text sizes doesn't write the file every time
   ipcMain.handle('settings:save', (_event, value: unknown) => {
     if (!isObject(value)) throw new Error('Settings must be an object')
-    settings = value
-    if (!writeTimer) writeTimer = setTimeout(writeNow, 500)
+    // The window doesn't send the library folder (and can't change it), so keep it
+    settings = { ...value, libraryFolder: getLibraryFolder() ?? undefined }
+    scheduleWrite()
   })
 
   // Make sure the last change is on disk before the app closes

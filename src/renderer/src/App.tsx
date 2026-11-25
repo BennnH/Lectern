@@ -18,21 +18,24 @@ function App(): React.JSX.Element {
   const [screen, setScreen] = useState<Screen>({ name: 'splash' })
   const [page, setPage] = useState<PageId>('library')
   const [books, setBooks] = useState<Book[] | null>(null)
+  const [folder, setFolder] = useState<LibraryFolder | null>(null)
   // The session to show a recap card for (when you leave the reader)
   const [recap, setRecap] = useState<ReadingSession | null>(null)
+
+  // Lists the PDFs in your library folder
+  const refresh = useCallback((): void => {
+    Promise.all([window.api.listBooks(), window.api.libraryFolder()])
+      .then(([found, where]) => {
+        importOldProgress(found)
+        setBooks(found)
+        setFolder(where)
+      })
+      .catch(() => setBooks([]))
+  }, [])
 
   // While the splash is showing: load your saved data and settings, then the library.
   // The library is refreshed whenever you come back to the window (e.g. after adding PDFs).
   useEffect(() => {
-    const refresh = (): void => {
-      window.api
-        .listBooks()
-        .then((found) => {
-          importOldProgress(found)
-          setBooks(found)
-        })
-        .catch(() => setBooks([]))
-    }
     Promise.all([loadStore(), loadSettings()])
       .catch(() => undefined)
       .then(() => {
@@ -43,7 +46,7 @@ function App(): React.JSX.Element {
       })
     window.addEventListener('focus', refresh)
     return () => window.removeEventListener('focus', refresh)
-  }, [])
+  }, [refresh])
 
   const finishSplash = useCallback(() => {
     setScreen((current) => (current.name === 'splash' ? { name: 'home' } : current))
@@ -78,8 +81,10 @@ function App(): React.JSX.Element {
             page={page}
             onNavigate={setPage}
             books={books}
+            folder={folder}
             onOpenBook={openBook}
             onOpenFolder={openFolder}
+            onLibraryChange={refresh}
           />
         )}
         {screen.name === 'reader' && (

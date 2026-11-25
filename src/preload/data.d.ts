@@ -1,5 +1,13 @@
 // Shapes of the reading data Lectern saves. Shared by the main process and the UI.
 
+// Where Lectern looks for your PDFs
+interface LibraryFolder {
+  path: string
+  shortPath: string // with ~ for your home folder, e.g. ~/Documents/Lectern
+  isDefault: boolean // the default folder, Documents/Lectern
+  found: boolean // false if a folder you chose has gone (e.g. its drive is unplugged)
+}
+
 // Where you are in a book
 interface BookProgress {
   page: number // PDF page

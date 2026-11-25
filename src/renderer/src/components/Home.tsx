@@ -11,8 +11,10 @@ type Props = {
   page: PageId
   onNavigate: (page: PageId) => void
   books: Book[] | null
+  folder: LibraryFolder | null
   onOpenBook: (book: Book) => void
   onOpenFolder: () => void
+  onLibraryChange: () => void // after choosing another library folder
 }
 
 // Everything outside the reader: the sidebar, and whichever page is chosen in it
@@ -20,8 +22,10 @@ export default function Home({
   page,
   onNavigate,
   books,
+  folder,
   onOpenBook,
-  onOpenFolder
+  onOpenFolder,
+  onLibraryChange
 }: Props): React.JSX.Element {
   // ⌘1, ⌘2… (Ctrl on Windows) jump straight to a page
   useEffect(() => {
@@ -48,10 +52,17 @@ export default function Home({
       <main className="relative flex-1 overflow-hidden">
         <AnimatePresence mode="wait">
           {page === 'library' && (
-            <Library key="library" books={books} onOpen={onOpenBook} onOpenFolder={onOpenFolder} />
+            <Library
+              key="library"
+              books={books}
+              folder={folder}
+              onOpen={onOpenBook}
+              onOpenFolder={onOpenFolder}
+              onOpenSettings={() => onNavigate('settings')}
+            />
           )}
           {page === 'stats' && <StatsPage key="stats" />}
-          {page === 'settings' && <SettingsPage key="settings" />}
+          {page === 'settings' && <SettingsPage key="settings" onLibraryChange={onLibraryChange} />}
           {page === 'data' && <DataPage key="data" />}
         </AnimatePresence>
       </main>

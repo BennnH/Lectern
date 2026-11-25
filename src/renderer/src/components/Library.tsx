@@ -6,11 +6,19 @@ import { currentStreak, formatDuration, todayTotals } from '../lib/stats'
 
 type Props = {
   books: Book[] | null
+  folder: LibraryFolder | null
   onOpen: (book: Book) => void
   onOpenFolder: () => void
+  onOpenSettings: () => void
 }
 
-export default function Library({ books, onOpen, onOpenFolder }: Props): React.JSX.Element {
+export default function Library({
+  books,
+  folder,
+  onOpen,
+  onOpenFolder,
+  onOpenSettings
+}: Props): React.JSX.Element {
   // Today's reading and your streak, shown under the title
   const sessions = getSessions()
   const today = todayTotals(sessions)
@@ -47,27 +55,58 @@ export default function Library({ books, onOpen, onOpenFolder }: Props): React.J
               </p>
             )}
           </div>
-          <button
-            type="button"
-            onClick={onOpenFolder}
-            className="rounded-full border border-white/10 px-4 py-1.5 text-sm text-neutral-300 transition hover:bg-white/5 hover:text-white"
-          >
-            Open folder
-          </button>
+          {folder?.found !== false && (
+            <button
+              type="button"
+              onClick={onOpenFolder}
+              className="rounded-full border border-white/10 px-4 py-1.5 text-sm text-neutral-300 transition hover:bg-white/5 hover:text-white"
+            >
+              Open folder
+            </button>
+          )}
         </header>
 
-        {books && books.length === 0 && (
+        {books && books.length === 0 && folder && !folder.found && (
+          <div className="mt-24 flex flex-col items-center text-center">
+            <p className="text-lg font-medium text-neutral-200">
+              Can&apos;t find your library folder
+            </p>
+            <p className="mt-2 max-w-sm text-sm text-neutral-500">
+              <span className="text-neutral-400">{folder.shortPath}</span> isn&apos;t there any
+              more. If it&apos;s on a drive, plug it back in, or choose another folder in Settings.
+            </p>
+            <button
+              type="button"
+              onClick={onOpenSettings}
+              className="mt-6 rounded-full bg-white px-5 py-2 text-sm font-medium text-neutral-950 transition hover:bg-neutral-200"
+            >
+              Open Settings
+            </button>
+          </div>
+        )}
+
+        {books && books.length === 0 && folder?.found !== false && (
           <div className="mt-24 flex flex-col items-center text-center">
             <p className="text-lg font-medium text-neutral-200">Your library is empty</p>
             <p className="mt-2 max-w-sm text-sm text-neutral-500">
-              Add PDF files to the Lectern folder in your Documents and they&apos;ll appear here.
+              {folder && !folder.isDefault ? (
+                <>
+                  Add PDF files to <span className="text-neutral-400">{folder.shortPath}</span> and
+                  they&apos;ll appear here.
+                </>
+              ) : (
+                <>
+                  Add PDF files to the Lectern folder in your Documents and they&apos;ll appear
+                  here.
+                </>
+              )}
             </p>
             <button
               type="button"
               onClick={onOpenFolder}
               className="mt-6 rounded-full bg-white px-5 py-2 text-sm font-medium text-neutral-950 transition hover:bg-neutral-200"
             >
-              Open Lectern folder
+              Open library folder
             </button>
           </div>
         )}

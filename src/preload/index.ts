@@ -8,6 +8,9 @@ const api = {
   listBooks: () => ipcRenderer.invoke('library:list'),
   readBook: (id: string) => ipcRenderer.invoke('library:read', id),
   openLibraryFolder: () => ipcRenderer.invoke('library:open-folder'),
+  libraryFolder: () => ipcRenderer.invoke('library:folder'),
+  chooseLibraryFolder: () => ipcRenderer.invoke('library:choose-folder'),
+  useDefaultLibraryFolder: () => ipcRenderer.invoke('library:use-default-folder'),
 
   loadData: () => ipcRenderer.invoke('data:load'),
   saveProgress: (bookId: string, progress: BookProgress) =>

@@ -1,7 +1,8 @@
-import { app, ipcMain, shell } from 'electron'
+import { BrowserWindow, app, dialog, ipcMain, shell } from 'electron'
 import { createHash } from 'crypto'
 import { mkdir, open, readdir, readFile, stat } from 'fs/promises'
 import { basename, extname, join } from 'path'
+import { getLibraryFolder, setLibraryFolder } from './settings'
 
 // A PDF in the library folder. The id is the file name; the fingerprint identifies the
 // book by its contents, so renaming the file doesn't lose your progress or stats.
@@ -14,8 +15,55 @@ export type BookFile = {
 }
 
 // ~/Documents/Lectern — created automatically if it doesn't exist
-export function getLibraryDir(): string {
+function defaultLibraryDir(): string {
   return join(app.getPath('documents'), 'Lectern')
+}
+
+// Where your PDFs are: the folder you chose in Settings, or the default
+export function getLibraryDir(): string {
+  return getLibraryFolder() ?? defaultLibraryDir()
+}
+
+async function isFolder(path: string): Promise<boolean> {
+  try {
+    return (await stat(path)).isDirectory()
+  } catch {
+    return false
+  }
+}
+
+// Where the library is, for Settings and the Library page. Only the default folder is created
+// for you: a folder you chose that's gone missing (say, on a drive that's unplugged) shouldn't
+// be quietly replaced with an empty one.
+async function libraryFolder(): Promise<LibraryFolder> {
+  const path = getLibraryDir()
+  const isDefault = getLibraryFolder() === null
+  if (isDefault) await mkdir(path, { recursive: true })
+  const home = app.getPath('home')
+  return {
+    path,
+    shortPath: path.startsWith(home) ? `~${path.slice(home.length)}` : path,
+    isDefault,
+    found: await isFolder(path)
+  }
+}
+
+// Shows the macOS folder picker. Returns the new folder, or null if you cancel.
+async function chooseLibraryFolder(window: BrowserWindow | null): Promise<LibraryFolder | null> {
+  const options: Electron.OpenDialogOptions = {
+    title: 'Choose your library folder',
+    message: 'Lectern shows the PDFs in the folder you choose.',
+    buttonLabel: 'Use This Folder',
+    defaultPath: getLibraryDir(),
+    properties: ['openDirectory', 'createDirectory']
+  }
+  const result = window
+    ? await dialog.showOpenDialog(window, options)
+    : await dialog.showOpenDialog(options)
+  const chosen = result.filePaths[0]
+  if (result.canceled || !chosen) return null
+  setLibraryFolder(chosen === defaultLibraryDir() ? null : chosen)
+  return libraryFolder()
 }
 
 const CHUNK = 64 * 1024
@@ -47,8 +95,8 @@ async function fingerprint(path: string, size: number, modified: number): Promis
 }
 
 async function listBooks(): Promise<BookFile[]> {
-  const dir = getLibraryDir()
-  await mkdir(dir, { recursive: true })
+  const { path: dir, found } = await libraryFolder()
+  if (!found) return []
 
   const entries = await readdir(dir, { withFileTypes: true })
   const books: BookFile[] = []
@@ -77,13 +125,20 @@ async function readBook(id: string): Promise<Uint8Array> {
 }
 
 async function openLibraryFolder(): Promise<string> {
-  const dir = getLibraryDir()
-  await mkdir(dir, { recursive: true })
-  return shell.openPath(dir)
+  const { path } = await libraryFolder()
+  return shell.openPath(path)
 }
 
 export function registerLibraryHandlers(): void {
   ipcMain.handle('library:list', () => listBooks())
   ipcMain.handle('library:read', (_event, id: string) => readBook(id))
   ipcMain.handle('library:open-folder', () => openLibraryFolder())
+  ipcMain.handle('library:folder', () => libraryFolder())
+  ipcMain.handle('library:choose-folder', (event) =>
+    chooseLibraryFolder(BrowserWindow.fromWebContents(event.sender))
+  )
+  ipcMain.handle('library:use-default-folder', () => {
+    setLibraryFolder(null)
+    return libraryFolder()
+  })
 }

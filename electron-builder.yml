@@ -17,8 +17,13 @@ mac:
   identity: '-'
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
-    - NSMicrophoneUsageDescription: Lectern listens for voice commands like turn and back while voice mode is on. Sound is processed on this Mac and is never recorded or sent anywhere.
-    - NSDocumentsFolderUsageDescription: Lectern reads the PDFs in the Lectern folder inside your Documents folder.
+    - NSMicrophoneUsageDescription: Lectern listens for voice commands like "next" and "go back" while voice commands are on. Sound is processed on this Mac and is never recorded or sent anywhere.
+    - NSDocumentsFolderUsageDescription: Lectern reads the PDFs in your library folder, which is in your Documents folder unless you choose another.
+    - NSDesktopFolderUsageDescription: Lectern reads the PDFs in the library folder you chose on your Desktop.
+    - NSDownloadsFolderUsageDescription: Lectern reads the PDFs in the library folder you chose in Downloads.
+    - NSFileProviderDomainUsageDescription: Lectern reads the PDFs in the library folder you chose in iCloud Drive or another cloud folder.
+    - NSRemovableVolumesUsageDescription: Lectern reads the PDFs in the library folder you chose on an external drive.
+    - NSNetworkVolumesUsageDescription: Lectern reads the PDFs in the library folder you chose on a network drive.
   notarize: false
 dmg:
   artifactName: ${productName}-${version}-${arch}.${ext}

@@ -2,9 +2,12 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence } from 'motion/react'
 import { ArrowUpRight, ScrollText } from 'lucide-react'
+import { shortcut } from '../lib/commands'
 import appIcon from '../../../../resources/icon.png'
+import LibrarySettings from './LibrarySettings'
 import LicencesDialog from './LicencesDialog'
 import ShortcutSettings from './ShortcutSettings'
+import VoiceOptions from './VoiceOptions'
 import { PageLayout, Section } from './Page'
 
 const isMac = window.api.platform === 'darwin'
@@ -16,8 +19,13 @@ const BUTTON =
   'flex items-center gap-2 rounded-full border border-white/10 px-4 py-1.5 text-sm text-neutral-300 transition hover:bg-white/5 hover:text-white'
 
 // Your preferences, and information about Lectern
-export default function SettingsPage(): React.JSX.Element {
+export default function SettingsPage({
+  onLibraryChange
+}: {
+  onLibraryChange: () => void // after choosing another library folder
+}): React.JSX.Element {
   const [version, setVersion] = useState('')
+  const voiceKey = shortcut('voice.toggle') // null if you've removed its keys
   const [showLicences, setShowLicences] = useState(false)
 
   useEffect(() => {
@@ -26,6 +34,20 @@ export default function SettingsPage(): React.JSX.Element {
 
   return (
     <PageLayout title="Settings">
+      <Section
+        title="Library"
+        description="The folder Lectern shows your PDFs from. Only PDFs directly inside it are shown, not ones in folders within it."
+      >
+        <LibrarySettings onChange={onLibraryChange} />
+      </Section>
+
+      <Section
+        title="Voice"
+        description={`Turn on voice commands in a book with ${voiceKey ? `${voiceKey} or ` : ''}the mic button, then say these words on their own.`}
+      >
+        <VoiceOptions />
+      </Section>
+
       <Section
         title="Keyboard shortcuts"
         description="The keys you use while reading. Page-turner remotes and foot pedals usually send the arrow keys, Page Up and Down or Space, which already work. If yours sends something else, add it here."

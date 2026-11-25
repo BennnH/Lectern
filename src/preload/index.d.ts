@@ -13,6 +13,9 @@ declare global {
     listBooks(): Promise<Book[]>
     readBook(id: string): Promise<Uint8Array>
     openLibraryFolder(): Promise<string>
+    libraryFolder(): Promise<LibraryFolder>
+    chooseLibraryFolder(): Promise<LibraryFolder | null> // null if you cancel
+    useDefaultLibraryFolder(): Promise<LibraryFolder>
     loadData(): Promise<StoredData>
     saveProgress(bookId: string, progress: BookProgress): Promise<void>
     saveSession(session: ReadingSession): Promise<void>
