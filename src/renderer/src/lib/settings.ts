@@ -62,12 +62,14 @@ export type Settings = {
   reader: ReaderSettings
   voice: VoiceSettings
   calendarPalette: string // a palette id from lib/palettes.ts
+  dailyGoal: number | null // pages a day, or null for no goal
 }
 
 const DEFAULTS: Settings = {
   reader: DEFAULT_READER_SETTINGS,
   voice: { noiseFilter: true },
-  calendarPalette: PALETTES[0].id
+  calendarPalette: PALETTES[0].id,
+  dailyGoal: null
 }
 
 let current: Settings = DEFAULTS
@@ -96,10 +98,12 @@ export function updateSettings(change: Partial<Settings>): void {
 // Settings saved by an older version may be missing something: fill in the defaults
 function withDefaults(saved: SavedSettings): Settings {
   const palette = saved.calendarPalette
+  const goal = saved.dailyGoal
   return {
     reader: { ...DEFAULTS.reader, ...(saved.reader as Partial<ReaderSettings>) },
     voice: { ...DEFAULTS.voice, ...(saved.voice as Partial<VoiceSettings>) },
-    calendarPalette: typeof palette === 'string' ? palette : DEFAULTS.calendarPalette
+    calendarPalette: typeof palette === 'string' ? palette : DEFAULTS.calendarPalette,
+    dailyGoal: typeof goal === 'number' && goal >= 1 ? Math.round(goal) : null
   }
 }
 

@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react'
 import { buildCalendar } from '../lib/calendar'
 import { getPalette } from '../lib/palettes'
 import { getSettings, updateSettings } from '../lib/settings'
-import { currentStreak, longestStreak, totalsByDay } from '../lib/stats'
+import { currentStreak, longestStreak, todayTotals, totalsByDay } from '../lib/stats'
 import { getSessions } from '../lib/store'
+import DailyGoal from './DailyGoal'
 import { PageLayout, Stat } from './Page'
 import ReadingCalendar from './ReadingCalendar'
 import PalettePicker from './PalettePicker'
@@ -19,7 +20,8 @@ export default function StatsPage(): React.JSX.Element {
     return {
       calendar: buildCalendar(totalsByDay(sessions)),
       current: currentStreak(sessions),
-      longest: longestStreak(sessions)
+      longest: longestStreak(sessions),
+      pagesToday: todayTotals(sessions)?.pages ?? 0
     }
   }, [])
   const { calendar } = stats
@@ -43,6 +45,7 @@ export default function StatsPage(): React.JSX.Element {
         <Stat value={days(stats.longest)} label="longest streak" />
       </div>
 
+      <DailyGoal pagesToday={stats.pagesToday} colour={palette.colour} />
       <div className="rounded-2xl bg-white/[0.03] p-5 ring-1 ring-white/5">
         <div className="mb-4 flex items-center justify-between gap-4">
           <h2 className="text-[11px] font-medium tracking-[0.16em] text-neutral-500 uppercase">

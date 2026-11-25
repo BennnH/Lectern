@@ -3,8 +3,9 @@ import { AnimatePresence, motion } from 'motion/react'
 import { ArrowLeft } from 'lucide-react'
 import { closePdf, openPdf, type PdfDoc } from '../lib/pdf'
 import { blockForPage, getReflowBook, type ReflowBook } from '../lib/reflow'
-import { getProgress, saveProgress, saveSession } from '../lib/store'
-import { MAX_TURN_MS, SessionTracker, fractionAt, isWorthKeeping } from '../lib/stats'
+import { getProgress, getSessions, saveProgress, saveSession } from '../lib/store'
+import { MAX_TURN_MS, SessionTracker, fractionAt, isWorthKeeping, todayTotals } from '../lib/stats'
+import { getPalette } from '../lib/palettes'
 import { useCommandKeys, type CommandActions, type CommandId } from '../lib/commands'
 import { useVoiceCommands } from '../lib/voice/useVoiceCommands'
 import {
@@ -22,6 +23,7 @@ import {
 } from '../lib/settings'
 import { EASE_OUT } from '../lib/motion'
 import PageView, { type ViewHandle } from './PageView'
+import GoalReached from './GoalReached'
 import ReflowView, { type ReflowLocation } from './ReflowView'
 import ReaderToolbar from './ReaderToolbar'
 import SessionPanel from './SessionPanel'
@@ -73,6 +75,10 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [flash, setFlash] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Pages read today when last checked, to spot the moment they reach your daily goal
+  const pagesToday = useRef<number | null>(null)
+  // While set, shows "Daily goal reached!" with this many pages
+  const [goalReached, setGoalReached] = useState<number | null>(null)
 
   const total = doc?.numPages ?? 1
   // Scanned PDFs have no text to reflow, so they always show original pages
@@ -167,7 +173,20 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
     if (!tracker) return
     tracker.turn(screenFirstPage, screenLastPage)
     if (isWorthKeeping(tracker.session)) saveSession(tracker.session)
+    // Celebrate if today's pages (this session included) just reached your daily goal
+    const goal = getSettings().dailyGoal
+    const today = todayTotals(getSessions())?.pages ?? 0
+    const before = pagesToday.current
+    if (goal !== null && before !== null && before < goal && today >= goal) setGoalReached(today)
+    pagesToday.current = today
   }, [tracker, screenFirstPage, screenLastPage, location])
+
+  // The banner goes away by itself
+  useEffect(() => {
+    if (goalReached === null) return
+    const timer = window.setTimeout(() => setGoalReached(null), 4500)
+    return () => window.clearTimeout(timer)
+  }, [goalReached])
 
   // Wrap up the session: count the screen you were on, save it, and return it
   const finishSession = useCallback((): ReadingSession | null => {
@@ -428,6 +447,16 @@ export default function Reader({ book, onClose }: Props): React.JSX.Element {
               {flash}
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {goalReached !== null && (
+          <GoalReached
+            key="goal"
+            pages={goalReached}
+            colour={getPalette(getSettings().calendarPalette).colour}
+          />
         )}
       </AnimatePresence>
 
