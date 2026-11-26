@@ -2,6 +2,7 @@ import { BrowserWindow, app, ipcMain, shell } from 'electron'
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { exportData } from './export'
+import { importData } from './import'
 
 // Everything Lectern remembers about your reading (progress and sessions), saved as one
 // JSON file: ~/Library/Application Support/Lectern/lectern-data.json on a Mac.
@@ -69,6 +70,19 @@ export function registerStoreHandlers(): void {
   ipcMain.handle('data:export', (event, format: DataExportFormat) => {
     if (format !== 'json' && format !== 'csv') throw new Error(`Unknown export format: ${format}`)
     return exportData(BrowserWindow.fromWebContents(event.sender), data, format)
+  })
+
+  // Adds what's new in a backup you choose. Saved straight away.
+  ipcMain.handle('data:import', async (event) => {
+    const { result, data: merged } = await importData(
+      BrowserWindow.fromWebContents(event.sender),
+      data
+    )
+    if (merged && result.status === 'imported' && (result.sessions > 0 || result.books > 0)) {
+      data = merged
+      writeNow()
+    }
+    return { result, data }
   })
 
   // Deletes reading sessions (and, for 'all', your place in every book). Saved straight away.

@@ -28,6 +28,7 @@ const api = {
   showDataFile: () => ipcRenderer.invoke('data:show-file'),
   exportData: (format: DataExportFormat) => ipcRenderer.invoke('data:export', format),
   clearData: (scope: DataClearScope) => ipcRenderer.invoke('data:clear', scope),
+  importData: () => ipcRenderer.invoke('data:import'),
 
   loadSettings: () => ipcRenderer.invoke('settings:load'),
   saveSettings: (settings: SavedSettings) => ipcRenderer.invoke('settings:save', settings),

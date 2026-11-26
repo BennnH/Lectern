@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
-import { FileBraces, FileSpreadsheet, FolderOpen } from 'lucide-react'
-import { clearData, dataSummary } from '../lib/store'
+import { FileBraces, FileSpreadsheet, FileUp, FolderOpen } from 'lucide-react'
+import { clearData, dataSummary, importData } from '../lib/store'
 import { formatDuration } from '../lib/stats'
 import ConfirmDialog from './ConfirmDialog'
 import { PageLayout, Section, Stat } from './Page'
@@ -23,6 +23,24 @@ const CLEAR_OPTIONS: Record<DataClearScope, { title: string; details: string; co
       'This deletes every reading session and your place in every book. Your PDF files and settings are not affected.',
     confirm: 'Delete everything'
   }
+}
+
+// "42 reading sessions", "1 book" and so on
+const count = (n: number, thing: string): string => `${n} ${thing}${n === 1 ? '' : 's'}`
+
+// What an import did, in a sentence
+function describeImport(result: DataImportResult): string | null {
+  if (result.status === 'cancelled') return null
+  if (result.status === 'invalid') return result.reason
+  const { sessions, books } = result
+  if (sessions === 0 && books === 0) {
+    return 'Nothing new to import: everything in that backup is already here'
+  }
+  const parts = [
+    sessions > 0 ? count(sessions, 'reading session') : null,
+    books > 0 ? `your place in ${count(books, 'book')}` : null
+  ].filter((part) => part !== null)
+  return `Imported ${parts.join(' and ')}`
 }
 
 // How long a message like "Saved to …" stays on screen
@@ -71,6 +89,13 @@ export default function DataPage(): React.JSX.Element {
     if (savedTo) setNotice(`Saved to ${savedTo}`)
   }
 
+  const restore = async (): Promise<void> => {
+    const result = await importData()
+    setSummary(dataSummary())
+    const message = describeImport(result)
+    if (message) setNotice(message)
+  }
+
   const clear = async (scope: DataClearScope): Promise<void> => {
     await clearData(scope)
     setSummary(dataSummary())
@@ -116,6 +141,15 @@ export default function DataPage(): React.JSX.Element {
             Reading sessions (CSV)
           </SecondaryButton>
         </div>
+      </Section>
+
+      <Section
+        title="Import"
+        description={`Bring back a backup made with Everything (JSON), for example on a new ${isMac ? 'Mac' : 'computer'}. Sessions you don't have are added, and for each book your most recent place is kept. Nothing is deleted.`}
+      >
+        <SecondaryButton icon={FileUp} onClick={restore}>
+          Import backup (JSON)
+        </SecondaryButton>
       </Section>
 
       <Section title="Clear data" danger>

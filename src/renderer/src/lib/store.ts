@@ -43,6 +43,13 @@ export async function clearData(scope: DataClearScope): Promise<void> {
   data = await window.api.clearData(scope)
 }
 
+// Adds what's new in a backup you choose (see src/main/import.ts), then carries on with the result
+export async function importData(): Promise<DataImportResult> {
+  const { result, data: merged } = await window.api.importData()
+  data = merged
+  return result
+}
+
 // How far through a book you are, as a whole-number percentage
 export function percentRead(progress: BookProgress | null): number {
   if (!progress) return 0
